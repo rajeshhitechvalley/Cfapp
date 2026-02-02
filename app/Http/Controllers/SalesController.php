@@ -1,0 +1,213 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\Bill;
+use App\Models\MenuItem;
+use App\Models\Table;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Inertia\Inertia;
+
+class SalesController extends Controller
+{
+    public function dashboard(Request $request)
+    {
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+        $thisMonth = Carbon::now()->startOfMonth();
+        $lastMonth = Carbon::now()->subMonth()->startOfMonth();
+        
+        // Today's sales
+        $todaySales = Bill::whereDate('bill_time', $today)
+            ->paid()
+            ->sum('total_amount');
+            
+        // Yesterday's sales
+        $yesterdaySales = Bill::whereDate('bill_time', $yesterday)
+            ->paid()
+            ->sum('total_amount');
+            
+        // This month's sales
+        $thisMonthSales = Bill::whereDate('bill_time', '>=', $thisMonth)
+            ->paid()
+            ->sum('total_amount');
+            
+        // Last month's sales
+        $lastMonthSales = Bill::whereDate('bill_time', '>=', $lastMonth)
+            ->whereDate('bill_time', '<', $thisMonth)
+            ->paid()
+            ->sum('total_amount');
+        
+        // Today's orders
+        $todayOrders = Order::whereDate('order_time', $today)->count();
+        
+        // Active orders
+        $activeOrders = Order::active()->count();
+        
+        // Top selling items today
+        $topItemsToday = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
+            ->whereDate('orders.order_time', $today)
+            ->select(
+                'menu_items.name',
+                'menu_items.category',
+                DB::raw('SUM(order_items.quantity) as total_quantity'),
+                DB::raw('SUM(order_items.total_price) as total_revenue'),
+                DB::raw('COUNT(DISTINCT orders.id) as order_count')
+            )
+            ->groupBy('menu_items.id', 'menu_items.name', 'menu_items.category')
+            ->orderBy('total_revenue', 'desc')
+            ->limit(10)
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'name' => $item->name,
+                    'category' => $item->category,
+                    'total_quantity' => (int) $item->total_quantity,
+                    'total_revenue' => (string) $item->total_revenue,
+                    'order_count' => (int) $item->order_count,
+                ];
+            });
+        
+        // Sales by category today
+        $salesByCategoryToday = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
+            ->whereDate('orders.order_time', $today)
+            ->select(
+                'menu_items.category',
+                DB::raw('SUM(order_items.total_price) as total_revenue'),
+                DB::raw('COUNT(DISTINCT orders.id) as order_count')
+            )
+            ->groupBy('menu_items.category')
+            ->orderBy('total_revenue', 'desc')
+            ->get();
+        
+        $totalSales = $salesByCategoryToday->sum('total_revenue');
+        $salesByCategoryToday = $salesByCategoryToday->map(function ($category) use ($totalSales) {
+            return [
+                'category' => $category->category,
+                'total_revenue' => (string) $category->total_revenue,
+                'order_count' => (int) $category->order_count,
+                'percentage' => $totalSales > 0 ? round(($category->total_revenue / $totalSales) * 100, 1) : 0,
+            ];
+        });
+        
+        // Recent orders
+        $recentOrders = Order::with(['table', 'orderItems.menuItem'])
+            ->orderBy('order_time', 'desc')
+            ->limit(10)
+            ->get();
+        
+        return Inertia::render('Sales/Dashboard', [
+            'stats' => [
+                'todaySales' => (float) $todaySales,
+                'yesterdaySales' => (float) $yesterdaySales,
+                'thisMonthSales' => (float) $thisMonthSales,
+                'lastMonthSales' => (float) $lastMonthSales,
+                'todayOrders' => $todayOrders,
+                'activeOrders' => $activeOrders,
+                'salesGrowth' => $yesterdaySales > 0 ? ((($todaySales - $yesterdaySales) / $yesterdaySales) * 100) : 0,
+                'monthlyGrowth' => $lastMonthSales > 0 ? ((($thisMonthSales - $lastMonthSales) / $lastMonthSales) * 100) : 0,
+            ],
+            'topItemsToday' => $topItemsToday,
+            'salesByCategoryToday' => $salesByCategoryToday,
+            'recentOrders' => $recentOrders,
+        ]);
+    }
+    
+    public function reports(Request $request)
+    {
+        $query = Bill::with(['order.table', 'order.orderItems.menuItem']);
+        
+        // Filter by date range
+        if ($request->has('date_from')) {
+            $query->whereDate('bill_time', '>=', $request->date_from);
+        }
+        if ($request->has('date_to')) {
+            $query->whereDate('bill_time', '<=', $request->date_to);
+        }
+        
+        // Filter by payment status
+        if ($request->has('payment_status') && $request->payment_status !== 'all') {
+            $query->byPaymentStatus($request->payment_status);
+        }
+        
+        // Filter by table
+        if ($request->has('table_id') && $request->table_id) {
+            $query->where('table_id', $request->table_id);
+        }
+        
+        $bills = $query->orderBy('bill_time', 'desc')->paginate(50);
+        $tables = Table::where('is_active', true)->get();
+        
+        // Summary statistics
+        $totalSales = $query->sum('total_amount');
+        $totalOrders = $query->count();
+        $averageOrderValue = $totalOrders > 0 ? $totalSales / $totalOrders : 0;
+        
+        return Inertia::render('Sales/Reports', [
+            'bills' => $bills,
+            'tables' => $tables,
+            'filters' => $request->only(['date_from', 'date_to', 'payment_status', 'table_id']),
+            'summary' => [
+                'totalSales' => (float) $totalSales,
+                'totalOrders' => $totalOrders,
+                'averageOrderValue' => (float) $averageOrderValue,
+            ],
+        ]);
+    }
+    
+    public function menuAnalytics(Request $request)
+    {
+        $dateFrom = $request->get('date_from', Carbon::now()->subDays(30)->toDateString());
+        $dateTo = $request->get('date_to', Carbon::now()->toDateString());
+        
+        // Top selling items
+        $topItems = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
+            ->whereDate('orders.order_time', '>=', $dateFrom)
+            ->whereDate('orders.order_time', '<=', $dateTo)
+            ->select('menu_items.name', 'menu_items.category', DB::raw('SUM(order_items.quantity) as total_quantity'), DB::raw('SUM(order_items.total_price) as total_revenue'))
+            ->groupBy('menu_items.id', 'menu_items.name', 'menu_items.category')
+            ->orderBy('total_revenue', 'desc')
+            ->limit(20)
+            ->get();
+        
+        // Sales by category
+        $salesByCategory = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
+            ->whereDate('orders.order_time', '>=', $dateFrom)
+            ->whereDate('orders.order_time', '<=', $dateTo)
+            ->select('menu_items.category', DB::raw('SUM(order_items.quantity) as total_quantity'), DB::raw('SUM(order_items.total_price) as total_revenue'), DB::raw('COUNT(DISTINCT orders.id) as total_orders'))
+            ->groupBy('menu_items.category')
+            ->orderBy('total_revenue', 'desc')
+            ->get();
+        
+        // Hourly sales pattern
+        $hourlySales = DB::table('bills')
+            ->whereDate('bill_time', '>=', $dateFrom)
+            ->whereDate('bill_time', '<=', $dateTo)
+            ->select(DB::raw('HOUR(bill_time) as hour'), DB::raw('SUM(total_amount) as total_sales'), DB::raw('COUNT(*) as total_orders'))
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get();
+        
+        return Inertia::render('Sales/MenuAnalytics', [
+            'topItems' => $topItems,
+            'salesByCategory' => $salesByCategory,
+            'hourlySales' => $hourlySales,
+            'filters' => [
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+            ],
+        ]);
+    }
+}
