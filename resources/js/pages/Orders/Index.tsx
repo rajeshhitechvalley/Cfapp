@@ -1,5 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Swal from 'sweetalert2';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,14 +17,19 @@ const route = (name: string, params?: any) => {
     const routes: Record<string, string> = {
         'orders.index': '/orders',
         'orders.create': '/orders/create',
-        'orders.show': '/orders',
-        'orders.edit': '/orders',
+        'orders.show': '/orders/:id',
+        'orders.edit': '/orders/:id/edit',
     };
     
     let url = routes[name] || `/${name}`;
     
     if (params && name !== 'orders.index' && name !== 'orders.create') {
-        url += `/${params}`;
+        // For simple parameters, replace :id if it exists, otherwise append
+        if (url.includes(':id')) {
+            url = url.replace(':id', params);
+        } else {
+            url += `/${params}`;
+        }
     }
     
     return url;
@@ -104,12 +109,25 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
     const [updatingStatus, setUpdatingStatus] = useState<number | null>(null);
     const [localOrders, setLocalOrders] = useState(orders.data);
     
+    // Sync localOrders with orders.data when filters change
+    useEffect(() => {
+        setLocalOrders(orders.data);
+    }, [orders.data]);
+    
     const handleFilterChange = (key: string, value: string) => {
-        router.get(route('orders.index'), {
+        const newFilters = {
             ...filters,
             [key]: value === 'all' ? '' : value,
-        }, {
+        };
+        
+        // Remove empty filters to keep URL clean
+        const cleanFilters = Object.fromEntries(
+            Object.entries(newFilters).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+        );
+        
+        router.get('/orders', cleanFilters, {
             preserveState: true,
+            preserveScroll: true,
         });
     };
 
@@ -220,8 +238,8 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
                 </div>
 
                 {/* Enhanced Filters */}
-                <Card className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-xl rounded-2xl">
-                    <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-2xl">
+                <Card className="border-0 bg-gradient-to-r from-blue-50 to-indigo-50 shadow-lg rounded-xl">
+                    <CardHeader className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-xl">
                         <CardTitle className="flex items-center">
                             <Filter className="h-5 w-5 mr-2" />
                             Filter Orders
@@ -232,10 +250,10 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Status</label>
                                 <Select value={filters.status || 'all'} onValueChange={(value) => handleFilterChange('status', value)}>
-                                    <SelectTrigger className="border-2 border-gray-300 text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300">
+                                    <SelectTrigger className="border-2 border-gray-300 text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200">
                                         <SelectValue placeholder="All Status" className="text-gray-900 font-semibold" />
                                     </SelectTrigger>
-                                    <SelectContent className="text-gray-900 bg-white border-2 border-gray-200 shadow-lg">
+                                    <SelectContent className="text-gray-700 bg-white border-2 border-gray-200 shadow-lg">
                                         <SelectItem value="all" className="text-gray-900 font-semibold hover:bg-gray-50 cursor-pointer capitalize">
                                             All Status
                                         </SelectItem>
@@ -264,7 +282,7 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
                             <div>
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">Table</label>
                                 <Select value={filters.table_id || 'all'} onValueChange={(value) => handleFilterChange('table_id', value)}>
-                                    <SelectTrigger className="border-2 border-gray-300 bg-white text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300">
+                                    <SelectTrigger className="border-2 border-gray-300 bg-white text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200">
                                         <SelectValue placeholder="All Tables" className="text-gray-900 font-semibold" />
                                     </SelectTrigger>
                                     <SelectContent className="text-gray-700 bg-white border-2 border-gray-200 shadow-lg">
@@ -281,37 +299,37 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center">
-                                    <Calendar className="h-4 w-4 mr-1 text-blue-600" />
-                                    Date From
-                                </label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Date From</label>
                                 <Input
                                     type="date"
                                     value={filters.date_from || ''}
                                     onChange={(e) => handleFilterChange('date_from', e.target.value)}
-                                    className="border-2 border-gray-300 bg-white text-gray-900 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 h-10 font-medium"
+                                    className="border-2 border-gray-300 bg-white text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 h-10 font-medium"
                                     placeholder="Select start date"
                                 />
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-gray-800 mb-2 flex items-center">
-                                    <Calendar className="h-4 w-4 mr-1 text-blue-600" />
-                                    Date To
-                                </label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Date To</label>
                                 <Input
                                     type="date"
                                     value={filters.date_to || ''}
                                     onChange={(e) => handleFilterChange('date_to', e.target.value)}
-                                    className="border-2 border-gray-300 bg-white text-gray-900 hover:border-blue-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300 h-10 font-medium"
+                                    className="border-2 border-gray-300 bg-white text-gray-900 hover:border-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 h-10 font-medium"
                                     placeholder="Select end date"
                                 />
                             </div>
 
                             <div className="flex items-end">
                                 <Button 
-                                    onClick={() => router.get(route('orders.index'), {}, { preserveState: true })}
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center"
+                                    onClick={() => {
+                                        // Clean current filters and apply them
+                                        const cleanFilters = Object.fromEntries(
+                                            Object.entries(filters).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+                                        );
+                                        router.get('/orders', cleanFilters, { preserveState: true, preserveScroll: true });
+                                    }}
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold px-6 py-2 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center"
                                 >
                                     <Filter className="h-4 w-4 mr-2" />
                                     Apply Filters
@@ -320,9 +338,9 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
 
                             <div className="flex items-end">
                                 <Button 
-                                    onClick={() => router.get(route('orders.index'), {}, { preserveState: true })}
+                                    onClick={() => router.get('/orders', {}, { preserveState: true, preserveScroll: true })}
                                     variant="outline"
-                                    className="border-2 border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 font-bold px-6 py-3 rounded-xl transition-all duration-300 flex items-center"
+                                    className="border-2 border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 font-bold px-6 py-2 rounded-lg transition-all duration-200 flex items-center"
                                 >
                                     <X className="h-4 w-4 mr-2" />
                                     Clear Filters
@@ -333,13 +351,13 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
                 </Card>
 
                 {/* Enhanced Orders Table */}
-                <Card className="border-0 bg-gradient-to-r from-slate-50 to-blue-50 shadow-xl rounded-2xl">
-                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white rounded-t-2xl">
+                <Card className="border-0 bg-gradient-to-r from-slate-50 to-blue-50 shadow-lg rounded-xl">
+                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white rounded-t-xl">
                         <CardTitle className="flex items-center">
                             <DollarSign className="h-5 w-5 mr-2" />
                             Orders List
                             <Badge className="ml-2 bg-white text-slate-600">
-                                {orders.data.length} Orders
+                                {localOrders.length} Orders
                             </Badge>
                         </CardTitle>
                     </CardHeader>

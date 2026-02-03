@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import Textarea from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Utensils, Coffee, Cake, Pizza, Clock, DollarSign, Image, CheckCircle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -36,63 +36,102 @@ export default function MenuItemsCreate() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Menu Item" />
 
-            <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <Link href="/menu-items">
-                            <Button variant="outline" size="sm">
-                                <ArrowLeft className="h-4 w-4 mr-2" />
-                                Back to Menu Items
-                            </Button>
-                        </Link>
-                        <div>
-                            <h1 className="text-3xl font-bold">Create Menu Item</h1>
-                            <p className="text-muted-foreground">Add a new item to your restaurant menu</p>
+            <div className="space-y-8">
+                {/* Enhanced Header */}
+                <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-3xl p-8 text-white shadow-2xl">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                            <Link href="/menu-items">
+                                <Button variant="outline" size="sm" className="bg-white/20 backdrop-blur-sm border-white/30 text-white hover:bg-white/30">
+                                    <ArrowLeft className="h-4 w-4 mr-2" />
+                                    Back to Menu Items
+                                </Button>
+                            </Link>
+                            <div>
+                                <div className="flex items-center space-x-3 mb-2">
+                                    <Plus className="h-8 w-8 text-yellow-300" />
+                                    <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-yellow-200">
+                                        Create Menu Item
+                                    </h1>
+                                </div>
+                                <p className="text-green-100 text-lg font-medium">Add a new delicious item to your restaurant menu</p>
+                            </div>
+                        </div>
+                        <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4 border border-white/30">
+                            <Utensils className="h-12 w-12 text-white" />
                         </div>
                     </div>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Menu Item Details</CardTitle>
+                {/* Enhanced Form Card */}
+                <Card className="border-0 bg-gradient-to-br from-white to-green-50 shadow-xl hover:shadow-2xl transform hover:scale-[1.01] transition-all duration-300 rounded-2xl">
+                    <CardHeader className="bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-t-2xl">
+                        <CardTitle className="flex items-center text-white font-bold text-xl">
+                            <Plus className="h-6 w-6 mr-2" />
+                            Menu Item Details
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Item Name *</Label>
+                    <CardContent className="p-8">
+                        <form onSubmit={handleSubmit} className="space-y-8">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="space-y-3">
+                                    <Label htmlFor="name" className="text-sm font-bold text-gray-700 flex items-center">
+                                        <Utensils className="h-4 w-4 mr-1 text-green-600" />
+                                        Item Name *
+                                    </Label>
                                     <Input
                                         id="name"
                                         value={data.name}
                                         onChange={(e) => setData('name', e.target.value)}
                                         placeholder="Enter item name"
                                         required
+                                        className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 h-12 text-gray-900 font-medium"
                                     />
                                     {errors.name && (
-                                        <p className="text-sm text-red-600">{errors.name}</p>
+                                        <p className="text-sm text-red-600 font-medium flex items-center">
+                                            <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                            {errors.name}
+                                        </p>
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="category">Category *</Label>
+                                <div className="space-y-3">
+                                    <Label htmlFor="category" className="text-sm font-bold text-gray-700 flex items-center">
+                                        <Coffee className="h-4 w-4 mr-1 text-green-600" />
+                                        Category *
+                                    </Label>
                                     <Select value={data.category} onValueChange={(value) => setData('category', value)}>
-                                        <SelectTrigger>
+                                        <SelectTrigger className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 h-12 text-gray-900 font-medium">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="tea">🍵 Tea</SelectItem>
-                                            <SelectItem value="snack">🍟 Snack</SelectItem>
-                                            <SelectItem value="cake">🍰 Cake</SelectItem>
-                                            <SelectItem value="pizza">🍕 Pizza</SelectItem>
+                                        <SelectContent className="text-gray-700 bg-white border-2 border-gray-200 shadow-lg">
+                                            <SelectItem value="tea" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
+                                                🍵 Tea
+                                            </SelectItem>
+                                            <SelectItem value="snack" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
+                                                🍟 Snack
+                                            </SelectItem>
+                                            <SelectItem value="cake" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
+                                                🍰 Cake
+                                            </SelectItem>
+                                            <SelectItem value="pizza" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
+                                                🍕 Pizza
+                                            </SelectItem>
                                         </SelectContent>
                                     </Select>
                                     {errors.category && (
-                                        <p className="text-sm text-red-600">{errors.category}</p>
+                                        <p className="text-sm text-red-600 font-medium flex items-center">
+                                            <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                            {errors.category}
+                                        </p>
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="price">Price ($) *</Label>
+                                <div className="space-y-3">
+                                    <Label htmlFor="price" className="text-sm font-bold text-gray-700 flex items-center">
+                                        <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                                        Price ($) *
+                                    </Label>
                                     <Input
                                         id="price"
                                         type="number"
@@ -102,14 +141,21 @@ export default function MenuItemsCreate() {
                                         onChange={(e) => setData('price', e.target.value)}
                                         placeholder="0.00"
                                         required
+                                        className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 h-12 text-gray-900 font-medium"
                                     />
                                     {errors.price && (
-                                        <p className="text-sm text-red-600">{errors.price}</p>
+                                        <p className="text-sm text-red-600 font-medium flex items-center">
+                                            <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                            {errors.price}
+                                        </p>
                                     )}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label htmlFor="preparation_time">Preparation Time (minutes) *</Label>
+                                <div className="space-y-3">
+                                    <Label htmlFor="preparation_time" className="text-sm font-bold text-gray-700 flex items-center">
+                                        <Clock className="h-4 w-4 mr-1 text-green-600" />
+                                        Preparation Time (minutes) *
+                                    </Label>
                                     <Input
                                         id="preparation_time"
                                         type="number"
@@ -119,60 +165,93 @@ export default function MenuItemsCreate() {
                                         onChange={(e) => setData('preparation_time', e.target.value)}
                                         placeholder="10"
                                         required
+                                        className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 h-12 text-gray-900 font-medium"
                                     />
                                     {errors.preparation_time && (
-                                        <p className="text-sm text-red-600">{errors.preparation_time}</p>
+                                        <p className="text-sm text-red-600 font-medium flex items-center">
+                                            <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                            {errors.preparation_time}
+                                        </p>
                                     )}
                                 </div>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
+                            <div className="space-y-3">
+                                <Label htmlFor="description" className="text-sm font-bold text-gray-700 flex items-center">
+                                    <Utensils className="h-4 w-4 mr-1 text-green-600" />
+                                    Description
+                                </Label>
                                 <Textarea
                                     id="description"
                                     value={data.description}
                                     onChange={(e) => setData('description', e.target.value)}
                                     placeholder="Enter item description (optional)"
-                                    rows={3}
+                                    rows={4}
+                                    className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 text-gray-900 font-medium resize-none"
                                 />
                                 {errors.description && (
-                                    <p className="text-sm text-red-600">{errors.description}</p>
+                                    <p className="text-sm text-red-600 font-medium flex items-center">
+                                        <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                        {errors.description}
+                                    </p>
                                 )}
                             </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="image_url">Image URL</Label>
+                            <div className="space-y-3">
+                                <Label htmlFor="image_url" className="text-sm font-bold text-gray-700 flex items-center">
+                                    <Image className="h-4 w-4 mr-1 text-green-600" />
+                                    Image URL
+                                </Label>
                                 <Input
                                     id="image_url"
                                     type="url"
                                     value={data.image_url}
                                     onChange={(e) => setData('image_url', e.target.value)}
                                     placeholder="https://example.com/image.jpg"
+                                    className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 h-12 text-gray-900 font-medium"
                                 />
                                 {errors.image_url && (
-                                    <p className="text-sm text-red-600">{errors.image_url}</p>
-                                )}
+                                    <p className="text-sm text-red-600 font-medium flex items-center">
+                                        <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                        {errors.image_url}
+                                        </p>
+                                    )}
                             </div>
 
-                            <div className="flex items-center space-x-2">
+                            <div className="flex items-center space-x-3 p-4 bg-green-50 rounded-xl border-2 border-green-200">
                                 <Checkbox
                                     id="is_available"
                                     checked={data.is_available}
                                     onCheckedChange={(checked) => setData('is_available', checked as boolean)}
+                                    className="w-5 h-5 text-green-600 border-green-300 focus:ring-green-200"
                                 />
-                                <Label htmlFor="is_available">Available for order</Label>
+                                <Label htmlFor="is_available" className="text-gray-700 font-medium flex items-center cursor-pointer">
+                                    <CheckCircle className="h-5 w-5 mr-2 text-green-600" />
+                                    Available for order
+                                </Label>
                             </div>
                             {errors.is_available && (
-                                <p className="text-sm text-red-600">{errors.is_available}</p>
+                                <p className="text-sm text-red-600 font-medium flex items-center">
+                                    <span className="w-1 h-1 bg-red-600 rounded-full mr-2"></span>
+                                    {errors.is_available}
+                                </p>
                             )}
 
-                            <div className="flex items-center space-x-4 pt-4">
-                                <Button type="submit" disabled={processing} className="flex items-center gap-2">
-                                    <Save className="h-4 w-4" />
+                            <div className="flex items-center space-x-6 pt-6 border-t-2 border-gray-200">
+                                <Button 
+                                    type="submit" 
+                                    disabled={processing} 
+                                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                                >
+                                    <Save className="h-5 w-5" />
                                     {processing ? 'Creating...' : 'Create Menu Item'}
                                 </Button>
                                 <Link href="/menu-items">
-                                    <Button variant="outline" type="button">
+                                    <Button 
+                                        variant="outline" 
+                                        type="button"
+                                        className="border-2 border-gray-300 bg-white text-gray-700 hover:border-gray-400 hover:bg-gray-50 font-bold px-8 py-3 rounded-xl transition-all duration-300"
+                                    >
                                         Cancel
                                     </Button>
                                 </Link>

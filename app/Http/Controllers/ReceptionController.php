@@ -87,9 +87,9 @@ class ReceptionController extends Controller
             'high_priority_orders' => Order::whereIn('status', ['pending', 'preparing', 'ready'])
                 ->where('priority', 'high')
                 ->count(),
-            'daily_revenue' => Order::whereDate('created_at', today())
-                ->where('status', 'served')
-                ->sum('total_amount'),
+            'daily_revenue' => number_format(Bill::whereDate('created_at', today())
+                ->where('payment_status', 'paid')
+                ->sum('total_amount'), 2),
         ];
 
         return Inertia::render('Reception/Index', [
@@ -109,32 +109,15 @@ class ReceptionController extends Controller
             ], 422);
         }
 
+        // Update order status to served
         $order->status = 'served';
         $order->served_time = now();
         $order->save();
 
-        // Update table status
+        // Update table status to indicate order is served (but still occupied until payment)
         if ($order->table) {
-            $order->table->status = 'available';
-            $order->table->has_active_order = false;
+            $order->table->status = 'occupied';
             $order->table->save();
-        }
-
-        // Create notification
-        OrderNotification::notifyStatusChange($order, 'ready', 'served');
-
-        // Create bill automatically
-        if (!$order->bill) {
-            Bill::create([
-                'order_id' => $order->id,
-                'bill_number' => 'BILL-' . date('Ymd') . '-' . str_pad(mt_rand(1, 9999), 4, '0', STR_PAD_LEFT),
-                'subtotal' => $order->subtotal,
-                'tax_amount' => $order->tax_amount,
-                'total_amount' => $order->total_amount,
-                'discount_amount' => $order->discount_amount,
-                'status' => 'pending',
-                'bill_time' => now(),
-            ]);
         }
 
         return response()->json([
@@ -230,6 +213,9 @@ class ReceptionController extends Controller
             'high_priority_orders' => Order::whereIn('status', ['pending', 'preparing', 'ready'])
                 ->where('priority', 'high')
                 ->count(),
+            'daily_revenue' => number_format(Bill::whereDate('created_at', today())
+                ->where('payment_status', 'paid')
+                ->sum('total_amount'), 2),
         ];
 
         return response()->json([

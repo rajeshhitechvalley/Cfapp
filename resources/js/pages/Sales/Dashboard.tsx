@@ -90,7 +90,7 @@ export default function SalesDashboard({ stats, topItemsToday, salesByCategoryTo
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Sales Dashboard" />
 
-            <div className="space-y-8">
+            <div className="space-y-8 p-8">
                 {/* Enhanced Header */}
                 <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl p-8 text-white shadow-2xl transform hover:scale-[1.02] transition-all duration-300">
                     <div className="flex items-center justify-between">

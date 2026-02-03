@@ -50,6 +50,7 @@ Route::middleware('web')->group(function () {
     // Sales tracking routes
     Route::get('sales/dashboard', [SalesController::class, 'dashboard'])->name('sales.dashboard');
     Route::get('sales/reports', [SalesController::class, 'reports'])->name('sales.reports');
+    Route::get('sales/reports/export', [SalesController::class, 'export'])->name('sales.reports.export');
     Route::get('sales/menu-analytics', [SalesController::class, 'menuAnalytics'])->name('sales.menu-analytics');
     
     // Bill management routes
@@ -63,6 +64,14 @@ Route::middleware('web')->group(function () {
     // Tax settings routes
     Route::resource('tax-settings', TaxSettingController::class);
     Route::post('tax-settings/{taxSetting}/toggle-active', [TaxSettingController::class, 'toggleActive'])->name('tax-settings.toggle-active');
+    
+    // Reception Dashboard routes
+    Route::get('/reception', [ReceptionController::class, 'index'])->middleware('role:staff')->name('reception.index');
+    Route::post('/reception/orders/{order}/serve', [ReceptionController::class, 'markOrderServed'])->middleware('role:staff')->name('reception.orders.serve');
+    Route::post('/reception/orders/{order}/priority', [ReceptionController::class, 'updateOrderPriority'])->middleware('role:staff')->name('reception.orders.priority');
+    Route::get('/reception/notifications', [ReceptionController::class, 'getNotifications'])->middleware('role:staff')->name('reception.notifications');
+    Route::post('/reception/notifications/{notification}/read', [ReceptionController::class, 'markNotificationRead'])->middleware('role:staff')->name('reception.notifications.read');
+    Route::get('/reception/realtime', [ReceptionController::class, 'getRealTimeUpdates'])->middleware('role:staff')->name('reception.realtime');
     
     // User management routes
     Route::resource('users', UserController::class)->middleware('role:staff');
@@ -78,14 +87,6 @@ Route::middleware('web')->group(function () {
     Route::post('/kitchen/notifications/{notification}/read', [KitchenDisplayController::class, 'markNotificationRead'])->middleware('role:kitchen,staff')->name('kitchen.notifications.read');
     Route::post('/kitchen/notifications/read-all', [KitchenDisplayController::class, 'markAllNotificationsRead'])->middleware('role:kitchen,staff')->name('kitchen.notifications.read-all');
     Route::get('/kitchen/realtime', [KitchenDisplayController::class, 'getRealTimeUpdates'])->middleware('role:kitchen,staff')->name('kitchen.realtime');
-    
-    // Reception Dashboard routes
-    Route::get('/reception', [ReceptionController::class, 'index'])->middleware('role:staff')->name('reception.index');
-    Route::post('/reception/orders/{order}/serve', [ReceptionController::class, 'markOrderServed'])->middleware('role:staff')->name('reception.orders.serve');
-    Route::post('/reception/orders/{order}/priority', [ReceptionController::class, 'updateOrderPriority'])->middleware('role:staff')->name('reception.orders.priority');
-    Route::get('/reception/notifications', [ReceptionController::class, 'getNotifications'])->middleware('role:staff')->name('reception.notifications');
-    Route::post('/reception/notifications/{notification}/read', [ReceptionController::class, 'markNotificationRead'])->middleware('role:staff')->name('reception.notifications.read');
-    Route::get('/reception/realtime', [ReceptionController::class, 'getRealTimeUpdates'])->middleware('role:staff')->name('reception.realtime');
 });
 
 require __DIR__.'/settings.php';

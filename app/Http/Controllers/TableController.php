@@ -96,10 +96,22 @@ class TableController extends Controller
 
     public function destroy(Table $table)
     {
+        // Check for active reservations
         if ($table->reservations()->whereIn('status', ['pending', 'confirmed'])->exists()) {
             return back()->with('error', 'Cannot delete table with active reservations.');
         }
 
+        // Check for any orders
+        if ($table->orders()->exists()) {
+            return back()->with('error', 'Cannot delete table with existing orders. Please delete or complete all orders first.');
+        }
+
+        // Check for any bills
+        if ($table->bills()->exists()) {
+            return back()->with('error', 'Cannot delete table with existing bills. Please delete all bills first.');
+        }
+
+        // If no related records exist, proceed with deletion
         $table->delete();
 
         return redirect()->route('tables.index')

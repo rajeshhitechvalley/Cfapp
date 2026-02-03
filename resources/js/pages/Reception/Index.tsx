@@ -143,27 +143,49 @@ export default function ReceptionIndex({
     };
 
     const markOrderServed = async (orderId: number) => {
+        console.log('Marking order as served:', orderId);
+        
         try {
+            // Get CSRF token
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+            console.log('CSRF Token:', csrfToken ? 'Found' : 'Not found');
+            
             const response = await fetch(`/reception/orders/${orderId}/serve`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    'X-CSRF-TOKEN': csrfToken || '',
+                    'Accept': 'application/json',
                 },
             });
 
-            if (response.ok) {
+            console.log('Response status:', response.status);
+            console.log('Response ok:', response.ok);
+
+            const data = await response.json();
+            console.log('Response data:', data);
+
+            if (response.ok && data.success) {
+                console.log('Order marked as served successfully');
+                
                 // Update local state
                 setReadyOrders(readyOrders.filter(order => order.id !== orderId));
                 setStats({
                     ...stats,
-                    ready_orders: stats.ready_orders - 1,
-                    total_active_orders: stats.total_active_orders - 1,
+                    ready_orders: Math.max(0, stats.ready_orders - 1),
+                    total_active_orders: Math.max(0, stats.total_active_orders - 1),
                 });
                 fetchNotifications();
+                
+                // Show success message
+                alert('Order marked as served successfully!');
+            } else {
+                console.error('Failed to mark order as served:', data);
+                alert(data.message || 'Failed to mark order as served');
             }
         } catch (error) {
             console.error('Failed to mark order as served:', error);
+            alert('Error: ' + (error instanceof Error ? error.message : 'Unknown error'));
         }
     };
 

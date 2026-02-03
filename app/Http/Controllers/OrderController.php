@@ -182,9 +182,37 @@ class OrderController extends Controller
             'status' => 'required|in:pending,preparing,ready,served,completed,cancelled',
             'priority' => 'required|in:low,normal,high',
             'special_instructions' => 'nullable|string',
+            'items' => 'nullable|array',
+            'items.*.menu_item_id' => 'required|exists:menu_items,id',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.special_instructions' => 'nullable|string',
         ]);
 
-        $order->update($validated);
+        // Only allow item modification if order is still pending
+        if ($order->status === 'pending' && isset($validated['items'])) {
+            // Delete existing order items
+            $order->orderItems()->delete();
+            
+            // Create new order items
+            foreach ($validated['items'] as $item) {
+                OrderItem::create([
+                    'order_id' => $order->id,
+                    'menu_item_id' => $item['menu_item_id'],
+                    'quantity' => $item['quantity'],
+                    'special_instructions' => $item['special_instructions'] ?? null,
+                ]);
+            }
+            
+            // Update order totals
+            $order->updateTotals();
+        }
+
+        // Update order basic info
+        $order->update([
+            'status' => $validated['status'],
+            'priority' => $validated['priority'],
+            'special_instructions' => $validated['special_instructions'],
+        ]);
 
         // Set timestamps based on status
         if ($validated['status'] === 'ready' && !$order->ready_time) {

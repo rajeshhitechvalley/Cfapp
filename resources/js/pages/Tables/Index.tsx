@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Edit, Eye, Trash2, Settings, Coffee, Table as TableIcon, Users, Clock, Star, Zap, Award } from 'lucide-react';
+import { Plus, Edit, Eye, Trash2, Settings, Coffee, Table as TableIcon, Users, Clock, Star, Zap, Award, MapPin, TrendingUp, Activity } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 
@@ -37,20 +37,36 @@ const breadcrumbs: BreadcrumbItem[] = [
 
 const getStatusColor = (status: string) => {
     switch (status) {
-        case 'available': return 'bg-green-100 text-green-800';
-        case 'reserved': return 'bg-yellow-100 text-yellow-800';
-        case 'occupied': return 'bg-red-100 text-red-800';
-        case 'maintenance': return 'bg-gray-100 text-gray-800';
-        default: return 'bg-gray-100 text-gray-800';
+        case 'available': return 'bg-gradient-to-r from-green-400 to-emerald-500 text-white border-0 shadow-lg font-bold px-4 py-2 rounded-full';
+        case 'reserved': return 'bg-gradient-to-r from-yellow-400 to-amber-500 text-white border-0 shadow-lg font-bold px-4 py-2 rounded-full';
+        case 'occupied': return 'bg-gradient-to-r from-red-400 to-rose-500 text-white border-0 shadow-lg font-bold px-4 py-2 rounded-full';
+        case 'maintenance': return 'bg-gradient-to-r from-gray-400 to-slate-500 text-white border-0 shadow-lg font-bold px-4 py-2 rounded-full';
+        default: return 'bg-gradient-to-r from-gray-400 to-slate-500 text-white border-0 shadow-lg font-bold px-4 py-2 rounded-full';
+    }
+};
+
+const getStatusIcon = (status: string) => {
+    switch (status) {
+        case 'available': return <Zap className="h-4 w-4" />;
+        case 'reserved': return <Clock className="h-4 w-4" />;
+        case 'occupied': return <Users className="h-4 w-4" />;
+        case 'maintenance': return <Settings className="h-4 w-4" />;
+        default: return <Settings className="h-4 w-4" />;
     }
 };
 
 export default function TablesIndex({ tables, tableTypes = [] }: TablesIndexProps) {
     const handleDelete = (id: number) => {
         if (confirm('Are you sure you want to delete this table? This action cannot be undone.')) {
+            console.log('Attempting to delete table:', id);
             router.delete(`/tables/${id}`, {
                 onSuccess: () => {
+                    console.log('Table deleted successfully');
                     // Success message will be shown via flash message
+                },
+                onError: (errors) => {
+                    console.error('Delete failed:', errors);
+                    // Error message will be shown via flash message
                 }
             });
         }
@@ -70,100 +86,145 @@ export default function TablesIndex({ tables, tableTypes = [] }: TablesIndexProp
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Tables" />
-            <div className="space-y-6 p-6">
-                <div className="flex items-center justify-between">
-                    <h1 className="text-3xl font-bold">Tables</h1>
-                    <Link href="/tables/create">
-                        <Button>
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Table
-                        </Button>
-                    </Link>
+            <Head title="Tables Management" />
+            <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-slate-100 p-6">
+                {/* Beautiful Header */}
+                <div className="mb-8 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 rounded-2xl p-8 text-white shadow-2xl">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <div className="flex items-center space-x-3 mb-2">
+                                <TableIcon className="h-8 w-8" />
+                                <h1 className="text-4xl font-bold">Tables Management</h1>
+                            </div>
+                            <p className="text-indigo-100 text-lg">Manage and organize restaurant tables</p>
+                        </div>
+                        <Link href="/tables/create">
+                            <Button className="bg-white text-indigo-600 hover:bg-indigo-50 font-semibold px-6 py-3 rounded-xl shadow-lg transform hover:scale-105 transition-all duration-300">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add Table
+                            </Button>
+                        </Link>
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Tables</CardTitle>
-                            <Settings className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{activeTables.length}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {tables.length - activeTables.length} inactive
-                            </p>
+                {/* Enhanced Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 bg-gradient-to-br from-blue-400 to-indigo-500">
+                        <CardContent className="p-6 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-blue-100 font-medium">Total Tables</p>
+                                    <p className="text-3xl font-bold mt-1">{activeTables.length}</p>
+                                    <p className="text-blue-200 text-sm mt-2">
+                                        {tables.length - activeTables.length} inactive
+                                    </p>
+                                </div>
+                                <div className="p-3 bg-white/20 rounded-xl">
+                                    <Settings className="h-8 w-8 text-white" />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Available</CardTitle>
-                            <div className="h-4 w-4 bg-green-500 rounded-full" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-green-600">{availableTables.length}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Ready for booking
-                            </p>
+                    <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 bg-gradient-to-br from-green-400 to-emerald-500">
+                        <CardContent className="p-6 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-green-100 font-medium">Available</p>
+                                    <p className="text-3xl font-bold mt-1">{availableTables.length}</p>
+                                    <p className="text-green-200 text-sm mt-2">Ready for booking</p>
+                                </div>
+                                <div className="p-3 bg-white/20 rounded-xl">
+                                    <Zap className="h-8 w-8 text-white" />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Occupied</CardTitle>
-                            <div className="h-4 w-4 bg-red-500 rounded-full" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold text-red-600">{occupiedTables.length}</div>
-                            <p className="text-xs text-muted-foreground">
-                                Currently in use
-                            </p>
+                    <Card className="group hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 border-0 bg-gradient-to-br from-red-400 to-rose-500">
+                        <CardContent className="p-6 text-white">
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-red-100 font-medium">Occupied</p>
+                                    <p className="text-3xl font-bold mt-1">{occupiedTables.length}</p>
+                                    <p className="text-red-200 text-sm mt-2">Currently in use</p>
+                                </div>
+                                <div className="p-3 bg-white/20 rounded-xl">
+                                    <Users className="h-8 w-8 text-white" />
+                                </div>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
 
-                <Card>
-                    <CardHeader>
-                        <CardTitle>All Tables</CardTitle>
+                {/* Enhanced Tables List */}
+                <Card className="border-0 bg-gradient-to-r from-slate-50 to-blue-50 shadow-lg rounded-xl">
+                    <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white rounded-t-xl">
+                        <CardTitle className="flex items-center">
+                            <TableIcon className="h-5 w-5 mr-2" />
+                            All Tables
+                            <Badge className="ml-2 bg-white text-slate-600">
+                                {tables.length} Tables
+                            </Badge>
+                        </CardTitle>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="p-0">
                         <div className="overflow-x-auto">
                             <table className="w-full">
-                                <thead>
-                                    <tr className="border-b">
-                                        <th className="text-left p-4">Table Number</th>
-                                        <th className="text-left p-4">Name</th>
-                                        <th className="text-left p-4">Type</th>
-                                        <th className="text-left p-4">Capacity</th>
-                                        <th className="text-left p-4">Location</th>
-                                        <th className="text-left p-4">Status</th>
-                                        <th className="text-left p-4">Actions</th>
+                                <thead className="bg-gradient-to-r from-slate-100 to-blue-100 border-b-2 border-slate-200">
+                                    <tr className="text-left">
+                                        <th className="p-4 font-bold text-slate-700">Table Number</th>
+                                        <th className="p-4 font-bold text-slate-700">Name</th>
+                                        <th className="p-4 font-bold text-slate-700">Type</th>
+                                        <th className="p-4 font-bold text-slate-700">Capacity</th>
+                                        <th className="p-4 font-bold text-slate-700">Location</th>
+                                        <th className="p-4 font-bold text-slate-700">Status</th>
+                                        <th className="p-4 font-bold text-slate-700">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {tables.map((table) => (
-                                        <tr key={table.id} className="border-b hover:bg-accent/50 transition-colors duration-150">
-                                            <td className="p-4 font-medium">{table.table_number}</td>
-                                            <td className="p-4">{table.name || '-'}</td>
+                                        <tr key={table.id} className="border-b hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/50 transition-all duration-300">
                                             <td className="p-4">
-                                                <span className="text-sm text-gray-600">
-                                                    {table.tableType?.name || 'N/A'}
-                                                </span>
+                                                <div className="flex items-center space-x-2">
+                                                    <div className="p-2 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-lg">
+                                                        <TableIcon className="h-4 w-4 text-blue-600" />
+                                                    </div>
+                                                    <span className="font-bold text-gray-900 text-lg">{table.table_number}</span>
+                                                </div>
                                             </td>
                                             <td className="p-4">
-                                                <span className="text-sm">
-                                                    {table.min_capacity}-{table.capacity} guests
-                                                </span>
+                                                <span className="text-gray-700 font-medium">{table.name || 'No Name'}</span>
                                             </td>
-                                            <td className="p-4">{table.location || '-'}</td>
+                                            <td className="p-4">
+                                                <Badge className="bg-gradient-to-r from-purple-100 to-indigo-100 text-purple-700 border-0 font-medium">
+                                                    {table.tableType?.name || 'Standard'}
+                                                </Badge>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center space-x-2">
+                                                    <Users className="h-4 w-4 text-gray-500" />
+                                                    <span className="text-gray-700 font-medium">
+                                                        {table.min_capacity}-{table.capacity} guests
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="flex items-center space-x-2">
+                                                    <MapPin className="h-4 w-4 text-gray-500" />
+                                                    <span className="text-gray-700 font-medium">{table.location || 'Not Set'}</span>
+                                                </div>
+                                            </td>
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">
                                                     <Badge className={getStatusColor(table.status)}>
-                                                        {table.status}
+                                                        <div className="flex items-center space-x-1">
+                                                            {getStatusIcon(table.status)}
+                                                            <span>{table.status}</span>
+                                                        </div>
                                                     </Badge>
                                                     {!table.is_active && (
-                                                        <Badge variant="outline" className="text-gray-500">
+                                                        <Badge variant="outline" className="text-gray-500 border-gray-300">
                                                             Inactive
                                                         </Badge>
                                                     )}
@@ -172,31 +233,31 @@ export default function TablesIndex({ tables, tableTypes = [] }: TablesIndexProp
                                             <td className="p-4">
                                                 <div className="flex items-center gap-2">
                                                     <Link href={`/tables/${table.id}`}>
-                                                        <Button variant="outline" size="sm">
+                                                        <Button variant="outline" size="sm" className="bg-white border-2 border-blue-200 text-blue-600 hover:bg-blue-400 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
                                                             <Eye className="h-4 w-4" />
                                                         </Button>
                                                     </Link>
                                                     <Link href={`/tables/${table.id}/edit`}>
-                                                        <Button variant="outline" size="sm">
+                                                        <Button variant="outline" size="sm" className="bg-white border-2 border-green-200 text-green-600 hover:bg-green-400 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
                                                             <Edit className="h-4 w-4" />
                                                         </Button>
                                                     </Link>
                                                     <Select value={table.status} onValueChange={(value) => handleStatusUpdate(table.id, value)}>
-                                                        <SelectTrigger className="w-32 h-8 text-sm border border-input bg-background hover:bg-accent hover:border-input/80 transition-colors duration-150">
+                                                        <SelectTrigger className="w-36 h-9 text-sm text-gray-900 border-2 border-gray-200 bg-white hover:border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-all duration-300">
                                                             <SelectValue placeholder="Status" />
                                                         </SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="available">Available</SelectItem>
-                                                            <SelectItem value="reserved">Reserved</SelectItem>
-                                                            <SelectItem value="occupied">Occupied</SelectItem>
-                                                            <SelectItem value="maintenance">Maintenance</SelectItem>
+                                                        <SelectContent className="border-2 border-gray-200 shadow-lg ">
+                                                            <SelectItem value="available" className="font-medium">Available</SelectItem>
+                                                            <SelectItem value="reserved" className="font-medium">Reserved</SelectItem>
+                                                            <SelectItem value="occupied" className="font-medium">Occupied</SelectItem>
+                                                            <SelectItem value="maintenance" className="font-medium">Maintenance</SelectItem>
                                                         </SelectContent>
                                                     </Select>
                                                     <Button 
                                                         variant="outline" 
                                                         size="sm"
                                                         onClick={() => handleDelete(table.id)}
-                                                        className="text-red-600 hover:text-red-800"
+                                                        className="bg-white border-2 border-red-200 text-red-600 hover:bg-red-400 rounded-lg shadow-sm hover:shadow-md transition-all duration-300"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
@@ -209,14 +270,20 @@ export default function TablesIndex({ tables, tableTypes = [] }: TablesIndexProp
                         </div>
                         
                         {tables.length === 0 && (
-                            <div className="text-center py-8">
-                                <p className="text-gray-500 mb-4">No tables found</p>
-                                <Link href="/tables/create">
-                                    <Button>
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Add Your First Table
-                                    </Button>
-                                </Link>
+                            <div className="text-center py-16">
+                                <div className="p-8 bg-gradient-to-r from-gray-100 to-gray-200 rounded-2xl border-2 border-gray-300 max-w-md mx-auto">
+                                    <div className="p-4 bg-white rounded-xl shadow-sm mb-4 inline-block">
+                                        <TableIcon className="h-12 w-12 text-gray-400" />
+                                    </div>
+                                    <h3 className="text-xl font-bold text-gray-700 mb-2">No Tables Found</h3>
+                                    <p className="text-gray-600 mb-6">Get started by adding your first table to manage your restaurant seating.</p>
+                                    <Link href="/tables/create">
+                                        <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300">
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            Add Your First Table
+                                        </Button>
+                                    </Link>
+                                </div>
                             </div>
                         )}
                     </CardContent>

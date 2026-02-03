@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 use Inertia\Inertia;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class SalesController extends Controller
 {
@@ -209,5 +210,85 @@ class SalesController extends Controller
                 'date_to' => $dateTo,
             ],
         ]);
+    }
+    
+    public function export(Request $request): StreamedResponse
+    {
+        $query = Bill::with(['order.table', 'order.orderItems.menuItem']);
+        
+        // Apply same filters as reports method
+        if ($request->has('start_date') && $request->start_date) {
+            $query->whereDate('bill_time', '>=', $request->start_date);
+        }
+        if ($request->has('end_date') && $request->end_date) {
+            $query->whereDate('bill_time', '<=', $request->end_date);
+        }
+        if ($request->has('payment_status') && $request->payment_status !== 'all') {
+            $query->byPaymentStatus($request->payment_status);
+        }
+        if ($request->has('table_id') && $request->table_id && $request->table_id !== 'all') {
+            $query->whereHas('order', function($q) use ($request) {
+                $q->where('table_id', $request->table_id);
+            });
+        }
+        
+        $bills = $query->orderBy('bill_time', 'desc')->get();
+        
+        $filename = 'sales-report-' . date('Y-m-d') . '.csv';
+        
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ];
+        
+        $callback = function() use ($bills) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV header
+            fputcsv($file, [
+                'Bill Number',
+                'Order Number', 
+                'Table',
+                'Bill Date',
+                'Subtotal',
+                'Tax Amount',
+                'Total Amount',
+                'Payment Status',
+                'Payment Method',
+                'Items Count',
+                'Items'
+            ]);
+            
+            // CSV data
+            foreach ($bills as $bill) {
+                $items = [];
+                $itemsCount = 0;
+                
+                if ($bill->order && $bill->order->orderItems) {
+                    foreach ($bill->order->orderItems as $item) {
+                        $items[] = ($item->menuItem ? $item->menuItem->name : 'Unknown Item') . ' x' . $item->quantity;
+                        $itemsCount += $item->quantity;
+                    }
+                }
+                
+                fputcsv($file, [
+                    $bill->bill_number,
+                    $bill->order ? $bill->order->order_number : 'N/A',
+                    $bill->order && $bill->order->table ? $bill->order->table->table_number : 'N/A',
+                    $bill->bill_time,
+                    $bill->subtotal,
+                    $bill->tax_amount,
+                    $bill->total_amount,
+                    $bill->payment_status,
+                    $bill->payment_method ?? 'N/A',
+                    $itemsCount,
+                    implode('; ', $items)
+                ]);
+            }
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
     }
 }

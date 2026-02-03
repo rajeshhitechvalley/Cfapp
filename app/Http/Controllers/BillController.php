@@ -45,6 +45,9 @@ class BillController extends Controller
         if ($validated['payment_status'] === 'paid' && !$bill->paid_time) {
             $bill->paid_time = now();
             $bill->save();
+            
+            // Auto-complete order and free table when payment is completed
+            $this->completeOrderAndFreeTable($bill);
         }
 
         return back()->with('success', 'Bill updated successfully.');
@@ -69,8 +72,32 @@ class BillController extends Controller
         if ($newPaidAmount >= (float) $bill->total_amount && !$bill->paid_time) {
             $bill->paid_time = now();
             $bill->save();
+            
+            // Auto-complete order and free table when payment is completed
+            $this->completeOrderAndFreeTable($bill);
         }
 
         return back()->with('success', 'Payment recorded successfully.');
+    }
+
+    /**
+     * Complete order and free table when payment is completed
+     */
+    private function completeOrderAndFreeTable(Bill $bill): void
+    {
+        $order = $bill->order;
+        
+        if ($order && $order->status !== 'completed') {
+            // Mark order as completed
+            $order->status = 'completed';
+            $order->save();
+            
+            // Free the table
+            if ($order->table) {
+                $order->table->status = 'available';
+                $order->table->has_active_order = false;
+                $order->table->save();
+            }
+        }
     }
 }

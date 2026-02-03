@@ -357,31 +357,38 @@ export default function KitchenIndex({
 
                 {/* Notifications Panel */}
                 {showNotifications && (
-                    <Card className="border-l-4 border-l-blue-500">
-                        <CardHeader>
-                            <CardTitle className="flex items-center">
-                                <Bell className="h-5 w-5 mr-2" />
+                    <div className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50 rounded-2xl shadow-xl border-2 border-blue-200 overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-5 border-b border-blue-200">
+                            <h3 className="text-xl font-bold text-white flex items-center">
+                                <div className="p-2 bg-white/20 rounded-lg mr-3">
+                                    <Bell className="h-5 w-5 text-white" />
+                                </div>
                                 Notifications
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
+                            </h3>
+                        </div>
+                        <div className="p-6 bg-gradient-to-b from-white to-blue-50/30">
                             {notifications.length === 0 ? (
-                                <p className="text-gray-500">No new notifications</p>
+                                <div className="text-center py-8">
+                                    <div className="p-4 bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl border border-gray-300">
+                                        <p className="text-gray-600 font-medium">No new notifications</p>
+                                        <p className="text-gray-500 text-sm mt-2">You're all caught up!</p>
+                                    </div>
+                                </div>
                             ) : (
-                                <div className="space-y-2">
+                                <div className="space-y-3">
                                     {notifications.map((notification) => (
                                         <div
                                             key={notification.id}
-                                            className="flex items-start justify-between p-3 bg-gray-50 rounded-lg"
+                                            className="flex items-start justify-between p-4 bg-gradient-to-r from-white to-blue-50 rounded-xl border-2 border-blue-200 shadow-sm hover:shadow-md transition-all duration-300"
                                         >
                                             <div className="flex-1">
-                                                <p className="font-medium">{notification.title}</p>
-                                                <p className="text-sm text-gray-600">{notification.message}</p>
-                                                <p className="text-xs text-gray-500">{notification.created_at}</p>
+                                                <p className="font-bold text-gray-900 text-lg">{notification.title}</p>
+                                                <p className="text-gray-700 mt-1">{notification.message}</p>
+                                                <p className="text-sm text-gray-500 mt-2 font-medium">{notification.created_at}</p>
                                             </div>
                                             <Button
                                                 size="sm"
-                                                variant="ghost"
+                                                className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white border-0 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
                                                 onClick={() => markNotificationRead(notification.id)}
                                             >
                                                 <CheckCircle className="h-4 w-4" />
@@ -390,8 +397,8 @@ export default function KitchenIndex({
                                     ))}
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
+                        </div>
+                    </div>
                 )}
 
                 {/* Enhanced Stats Cards */}
