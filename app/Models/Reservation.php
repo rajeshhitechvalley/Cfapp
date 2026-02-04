@@ -78,7 +78,8 @@ class Reservation extends Model
 
     public function generateConfirmationCode(): string
     {
-        return strtoupper(substr(md5($this->id . $this->customer_email), 0, 8));
+        // Use a combination of email, timestamp, and random string for uniqueness
+        return strtoupper(substr(md5($this->customer_email . microtime() . rand(1000, 9999)), 0, 8));
     }
 
     protected static function booted()

@@ -14,6 +14,8 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\TaxSettingController;
 use App\Http\Controllers\KitchenDisplayController;
 use App\Http\Controllers\ReceptionController;
+use App\Http\Controllers\QuickTableBookController;
+use App\Http\Controllers\AdvancedQuickTableBookController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -38,6 +40,29 @@ Route::get('dashboard', [CafeDashboardController::class, 'index'])->name('dashbo
 Route::middleware('web')->group(function () {
     Route::resource('tables', TableController::class);
     Route::post('tables/{table}/status', [TableController::class, 'updateStatus'])->name('tables.update-status');
+    
+    // Quick Table Book routes
+    Route::get('quick-table-book', [QuickTableBookController::class, 'index'])->name('quick-table-book.index');
+    Route::get('quick-table-book/test', [QuickTableBookController::class, 'index'])->name('quick-table-book.test');
+    Route::get('quick-table-book/tables/{table}', [QuickTableBookController::class, 'getTableDetails'])->name('quick-table-book.tables.show');
+    Route::post('quick-table-book/tables/{table}/book', [QuickTableBookController::class, 'bookTable'])->name('quick-table-book.tables.book');
+    Route::post('quick-table-book/tables/{table}/release', [QuickTableBookController::class, 'releaseTable'])->name('quick-table-book.tables.release');
+    Route::post('quick-table-book/tables/{table}/add-item', [QuickTableBookController::class, 'addItemToTable'])->name('quick-table-book.tables.add-item');
+    Route::post('quick-table-book/tables/{table}/add-multiple-items', [QuickTableBookController::class, 'addMultipleItemsToTable'])->name('quick-table-book.tables.add-multiple-items');
+    Route::delete('quick-table-book/order-items/{orderItem}', [QuickTableBookController::class, 'removeItemFromTable'])->name('quick-table-book.order-items.destroy');
+    Route::put('quick-table-book/order-items/{orderItem}/quantity', [QuickTableBookController::class, 'updateItemQuantity'])->name('quick-table-book.order-items.update-quantity');
+    Route::post('quick-table-book/orders/{order}/submit', [QuickTableBookController::class, 'submitOrderToKitchen'])->name('quick-table-book.orders.submit');
+    Route::post('quick-table-book/orders/{order}/complete', [QuickTableBookController::class, 'completeOrder'])->name('quick-table-book.orders.complete');
+    
+    // Advanced Quick Table Book routes
+    Route::get('advanced-quick-table-book', [AdvancedQuickTableBookController::class, 'index'])->name('advanced-quick-table-book.index');
+    Route::post('advanced-quick-table-book/reservations', [AdvancedQuickTableBookController::class, 'createReservation'])->name('advanced-quick-table-book.reservations.create');
+    Route::post('advanced-quick-table-book/tables/{table}/combo', [AdvancedQuickTableBookController::class, 'addComboToTable'])->name('advanced-quick-table-book.tables.combo');
+    Route::post('advanced-quick-table-book/orders/{order}/promotion', [AdvancedQuickTableBookController::class, 'applyPromotion'])->name('advanced-quick-table-book.orders.promotion');
+    Route::post('advanced-quick-table-book/orders/{order}/split-payment', [AdvancedQuickTableBookController::class, 'splitOrderPayment'])->name('advanced-quick-table-book.orders.split-payment');
+    Route::get('advanced-quick-table-book/table-availability', [AdvancedQuickTableBookController::class, 'getTableAvailability'])->name('advanced-quick-table-book.table-availability');
+    Route::post('advanced-quick-table-book/payments', [AdvancedQuickTableBookController::class, 'processPayment'])->name('advanced-quick-table-book.payments.process');
+    
     Route::resource('reservations', ReservationController::class);
     Route::post('reservations/{reservation}/confirm', [ReservationController::class, 'confirm'])->name('reservations.confirm');
     Route::get('reservations/check-availability', [ReservationController::class, 'checkAvailability'])->name('reservations.check-availability');

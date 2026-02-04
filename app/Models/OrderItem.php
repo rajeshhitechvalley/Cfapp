@@ -15,6 +15,7 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'total_price',
+        'subtotal',
         'special_instructions',
         'status',
     ];
@@ -23,6 +24,7 @@ class OrderItem extends Model
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'subtotal' => 'decimal:2',
     ];
 
     public function order()
@@ -40,13 +42,17 @@ class OrderItem extends Model
         static::creating(function ($orderItem) {
             if ($orderItem->menuItem && $orderItem->quantity) {
                 $orderItem->unit_price = $orderItem->menuItem->price;
-                $orderItem->total_price = (string) ((float) $orderItem->menuItem->price * $orderItem->quantity);
+                $totalPrice = (float) $orderItem->menuItem->price * $orderItem->quantity;
+                $orderItem->total_price = (string) $totalPrice;
+                $orderItem->subtotal = (string) $totalPrice;
             }
         });
 
         static::updating(function ($orderItem) {
             if ($orderItem->menuItem && $orderItem->quantity) {
-                $orderItem->total_price = (string) ((float) $orderItem->unit_price * $orderItem->quantity);
+                $totalPrice = (float) $orderItem->unit_price * $orderItem->quantity;
+                $orderItem->total_price = (string) $totalPrice;
+                $orderItem->subtotal = (string) $totalPrice;
             }
         });
     }

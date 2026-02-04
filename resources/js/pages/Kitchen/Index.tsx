@@ -589,13 +589,21 @@ export default function KitchenIndex({
                                                     )}
                                                 </div>
                                                 <Select
-                                                    value={item.status}
+                                                    value={item.status || undefined}
                                                     onValueChange={(value) => updateItemStatus(order.id, item.id, value)}
                                                 >
-                                                    <SelectTrigger className="w-40 border-2 border-gray-800 bg-white hover:border-gray-900 hover:bg-gray-50 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all shadow-md">
-                                                        <SelectValue placeholder="Select status" className="text-black font-semibold capitalize" />
+                                                    <SelectTrigger className="w-40 border-2 border-gray-800 hover:border-gray-900 hover:bg-gray-50 focus:border-blue-600 focus:ring-2 focus:ring-blue-200 transition-all shadow-md text-gray-700">
+                                                        <SelectValue 
+                                                            placeholder="Select Status"
+                                                        >
+                                                            {item.status ? (
+                                                                <span className="font-semibold capitalize">{item.status}</span>
+                                                            ) : (
+                                                                <span className="text-gray-500">Select Status</span>
+                                                            )}
+                                                        </SelectValue>
                                                     </SelectTrigger>
-                                                    <SelectContent className="bg-white border-2 border-gray-800 shadow-lg">
+                                                    <SelectContent className="bg-white text-gray-900 border-2 border-gray-800 shadow-lg">
                                                         <SelectItem value="pending" className="text-black font-semibold hover:bg-yellow-50 hover:text-black focus:bg-yellow-50 focus:text-black cursor-pointer capitalize">
                                                             Pending
                                                         </SelectItem>

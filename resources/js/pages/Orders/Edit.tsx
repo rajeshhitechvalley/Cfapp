@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Plus, Trash2, Save, Clock, DollarSign, Users, Minus } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
-import Textarea from '@/components/ui/textarea';
+import { Textarea } from '@/components/ui/textarea';
 import type { BreadcrumbItem } from '@/types';
 
 interface OrderItem {

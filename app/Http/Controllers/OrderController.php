@@ -130,10 +130,16 @@ class OrderController extends Controller
 
         // Create order items
         foreach ($validated['items'] as $item) {
+            $menuItem = MenuItem::findOrFail($item['menu_item_id']);
+            $totalPrice = $menuItem->price * $item['quantity'];
+            
             OrderItem::create([
                 'order_id' => $order->id,
                 'menu_item_id' => $item['menu_item_id'],
                 'quantity' => $item['quantity'],
+                'unit_price' => $menuItem->price,
+                'total_price' => $totalPrice,
+                'subtotal' => $totalPrice,
                 'special_instructions' => $item['special_instructions'] ?? null,
             ]);
         }
@@ -195,10 +201,16 @@ class OrderController extends Controller
             
             // Create new order items
             foreach ($validated['items'] as $item) {
+                $menuItem = MenuItem::findOrFail($item['menu_item_id']);
+                $totalPrice = $menuItem->price * $item['quantity'];
+                
                 OrderItem::create([
                     'order_id' => $order->id,
                     'menu_item_id' => $item['menu_item_id'],
                     'quantity' => $item['quantity'],
+                    'unit_price' => $menuItem->price,
+                    'total_price' => $totalPrice,
+                    'subtotal' => $totalPrice,
                     'special_instructions' => $item['special_instructions'] ?? null,
                 ]);
             }
