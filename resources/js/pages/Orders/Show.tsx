@@ -8,6 +8,7 @@ import { ArrowLeft, Clock, DollarSign, Users, CheckCircle, AlertCircle, XCircle,
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { useTax } from '@/hooks/useTax';
+import { useCurrency } from '@/components/currency-switcher';
 
 interface OrderItem {
     id: number;
@@ -117,7 +118,8 @@ const route = (name: string, params?: any) => {
 };
 
 export default function OrdersShow({ order }: Props) {
-    const { getTaxLabel, formatCurrency } = useTax();
+    const { getTaxLabel } = useTax();
+    const { formatCurrency } = useCurrency();
     const [currentOrder, setCurrentOrder] = useState(order);
     
     const handleStatusUpdate = (newStatus: string) => {
@@ -349,8 +351,8 @@ export default function OrdersShow({ order }: Props) {
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="font-bold text-gray-900 text-lg">{item.quantity} × ${parseFloat(item.unit_price).toFixed(2)}</div>
-                                                    <div className="font-bold text-xl text-emerald-600">${parseFloat(item.total_price).toFixed(2)}</div>
+                                                    <div className="font-bold text-gray-900 text-lg">{item.quantity} × {formatCurrency(parseFloat(item.unit_price))}</div>
+                                                    <div className="font-bold text-xl text-emerald-600">{formatCurrency(parseFloat(item.total_price))}</div>
                                                     <Badge className="mt-2 text-gray-900" variant="outline">
                                                         {item.status}
                                                     </Badge>
@@ -377,7 +379,7 @@ export default function OrdersShow({ order }: Props) {
                                     <div className="space-y-3">
                                         <div className="flex justify-between text-white/90">
                                             <span>Subtotal:</span>
-                                            <span className="font-medium">${parseFloat(order?.subtotal || '0').toFixed(2)}</span>
+                                            <span className="font-medium">{formatCurrency(parseFloat(order?.subtotal || '0'))}</span>
                                         </div>
                                         <div className="flex justify-between text-white/90">
                                             <span>{getTaxLabel()}:</span>
@@ -386,12 +388,12 @@ export default function OrdersShow({ order }: Props) {
                                         {parseFloat(order.discount_amount) > 0 && (
                                             <div className="flex justify-between text-green-300">
                                                 <span>Discount:</span>
-                                                <span className="font-medium">-${parseFloat(order.discount_amount).toFixed(2)}</span>
+                                                <span className="font-medium">-{formatCurrency(parseFloat(order.discount_amount))}</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between font-bold text-xl text-white border-t border-white/20 pt-3">
                                             <span>Total:</span>
-                                            <span>${parseFloat(order?.total_amount || '0').toFixed(2)}</span>
+                                            <span>{formatCurrency(parseFloat(order?.total_amount || '0'))}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -432,11 +434,11 @@ export default function OrdersShow({ order }: Props) {
                                             )}
                                             <div className="flex justify-between">
                                                 <span className="font-bold text-gray-900">Paid Amount:</span>
-                                                <span className="font-bold text-emerald-600">${parseFloat(order.bill.paid_amount).toFixed(2)}</span>
+                                                <span className="font-bold text-emerald-600">{formatCurrency(parseFloat(order.bill.paid_amount))}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="font-bold text-gray-900">Remaining:</span>
-                                                <span className="font-bold text-red-600">${(parseFloat(order.bill.total_amount) - parseFloat(order.bill.paid_amount)).toFixed(2)}</span>
+                                                <span className="font-bold text-red-600">{formatCurrency(parseFloat(order.bill.total_amount) - parseFloat(order.bill.paid_amount))}</span>
                                             </div>
                                             {order.bill.paid_time && (
                                                 <div className="flex justify-between">

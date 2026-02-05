@@ -22,11 +22,13 @@ class Table extends Model
         'position',
         'status',
         'is_active',
+        'has_active_order',
     ];
 
     protected $casts = [
         'position' => 'array',
         'is_active' => 'boolean',
+        'has_active_order' => 'boolean',
     ];
 
     public function tableType(): BelongsTo

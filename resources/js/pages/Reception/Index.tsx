@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, Clock, Users, AlertCircle, CheckCircle, Timer, DollarSign, Table as TableIcon, ChefHat, TrendingUp, Coffee, Utensils, Star, Zap, Award } from 'lucide-react';
+import { useCurrency } from '@/components/currency-switcher';
 
 interface Order {
     id: number;
@@ -81,6 +82,7 @@ export default function ReceptionIndex({
         daily_revenue: '0.00',
     }
 }: Props) {
+    const { formatCurrency } = useCurrency();
     const [activeOrders, setActiveOrders] = useState(initialActiveOrders);
     const [readyOrders, setReadyOrders] = useState(initialReadyOrders);
     const [tables, setTables] = useState(initialTables);
@@ -391,7 +393,7 @@ export default function ReceptionIndex({
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-purple-100 font-semibold mb-1">Daily Revenue</p>
-                                    <p className="text-4xl font-bold">${parseFloat(stats.daily_revenue).toFixed(2)}</p>
+                                    <p className="text-4xl font-bold">{formatCurrency(parseFloat(stats.daily_revenue))}</p>
                                     <p className="text-purple-200 text-sm mt-1 flex items-center">
                                         <TrendingUp className="h-3 w-3 mr-1" />
                                         Today's earnings
@@ -552,7 +554,7 @@ export default function ReceptionIndex({
                                                     </div>
                                                     <div className="flex justify-between items-center pt-2 border-t border-green-200">
                                                         <span className="text-gray-600">Total:</span>
-                                                        <span className="font-bold text-lg text-green-600">${parseFloat(order.total_amount).toFixed(2)}</span>
+                                                        <span className="font-bold text-lg text-green-600">{formatCurrency(parseFloat(order.total_amount))}</span>
                                                     </div>
                                                 </div>
                                                 <Button
@@ -627,7 +629,7 @@ export default function ReceptionIndex({
                                                     </div>
                                                     <div className="bg-white/50 p-3 rounded-lg">
                                                         <p className="text-gray-600 text-sm font-medium">Total</p>
-                                                        <p className="font-bold text-lg text-orange-600">${parseFloat(order.total_amount).toFixed(2)}</p>
+                                                        <p className="font-bold text-lg text-orange-600">{formatCurrency(parseFloat(order.total_amount))}</p>
                                                     </div>
                                                 </div>
                                                 {order.special_instructions && (

@@ -268,6 +268,16 @@ class OrderController extends Controller
         
         $order->save();
 
+        // Free table when order is completed or cancelled
+        if (in_array($validated['status'], ['completed', 'cancelled']) && $order->table_id) {
+            $table = Table::find($order->table_id);
+            if ($table) {
+                $table->status = 'available';
+                $table->has_active_order = false;
+                $table->save();
+            }
+        }
+
         // Create notification for status change
         OrderNotification::notifyStatusChange($order, $oldStatus, $validated['status']);
         

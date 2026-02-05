@@ -123,5 +123,20 @@ class Order extends Model
                 $order->order_time = now();
             }
         });
+
+        static::updated(function ($order) {
+            // Handle table status when order is completed or cancelled
+            if ($order->wasChanged('status') && in_array($order->status, ['completed', 'cancelled'])) {
+                if ($order->table_id) {
+                    $table = \App\Models\Table::find($order->table_id);
+                    if ($table) {
+                        $table->update([
+                            'status' => 'available',
+                            'has_active_order' => false,
+                        ]);
+                    }
+                }
+            }
+        });
     }
 }

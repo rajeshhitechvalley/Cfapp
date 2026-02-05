@@ -1,4 +1,4 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,11 @@ export default function MenuItemsEdit({ menuItem }: Props) {
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post(`/menu-items/${menuItem.id}`);
+        router.put(`/menu-items/${menuItem.id}`, data, {
+            onSuccess: () => {
+                // Success handling
+            },
+        });
     };
 
     const breadcrumbs: BreadcrumbItem[] = [

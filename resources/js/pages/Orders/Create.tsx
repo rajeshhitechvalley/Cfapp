@@ -10,6 +10,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { useState } from 'react';
 import { useTax } from '@/hooks/useTax';
+import { useCurrency } from '@/components/currency-switcher';
 
 // Helper function for route generation
 const route = (name: string, params?: any) => {
@@ -88,7 +89,8 @@ export default function OrdersCreate({ tables, menuItemsByCategory }: Props) {
     });
 
     const [selectedItems, setSelectedItems] = useState<OrderItem[]>([]);
-    const { getTaxLabel, calculateTax, calculateTotal: calculateTotalWithTax, formatCurrency, getTaxRatePercentage } = useTax();
+    const { getTaxLabel, calculateTax, calculateTotal: calculateTotalWithTax, getTaxRatePercentage } = useTax();
+    const { formatCurrency } = useCurrency();
 
     // Filter available tables
     const availableTables = tables.filter(table => 
@@ -478,7 +480,7 @@ export default function OrdersCreate({ tables, menuItemsByCategory }: Props) {
                                                                         <p className="text-gray-600 text-sm mt-1">{item.description}</p>
                                                                     </div>
                                                                     <div className="text-right">
-                                                                        <div className="font-bold text-xl text-emerald-600">${parseFloat(item.price).toFixed(2)}</div>
+                                                                        <div className="font-bold text-xl text-emerald-600">{formatCurrency(parseFloat(item.price))}</div>
                                                                         <div className="flex items-center text-xs text-gray-500 mt-1">
                                                                             <Clock className="h-3 w-3 mr-1" />
                                                                             {item.preparation_time} min
@@ -527,7 +529,7 @@ export default function OrdersCreate({ tables, menuItemsByCategory }: Props) {
                                                 <div key={item.menu_item_id} className="flex items-center space-x-4 p-5 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200 shadow-sm hover:shadow-md transition-all duration-300">
                                                     <div className="flex-1">
                                                         <h4 className="font-bold text-gray-900 text-lg">{menuItem?.name}</h4>
-                                                        <p className="text-gray-600 text-sm mt-1">${parseFloat(menuItem?.price || '0').toFixed(2)} each</p>
+                                                        <p className="text-gray-600 text-sm mt-1">{formatCurrency(parseFloat(menuItem?.price || '0'))} each</p>
                                                         <Input
                                                             placeholder="Special instructions for this item..."
                                                             value={item.special_instructions || ''}
@@ -557,7 +559,7 @@ export default function OrdersCreate({ tables, menuItemsByCategory }: Props) {
                                                         </Button>
                                                     </div>
                                                     <div className="text-right font-bold text-xl text-emerald-600">
-                                                        ${(parseFloat(menuItem?.price || '0') * item.quantity).toFixed(2)}
+                                                        {formatCurrency(parseFloat(menuItem?.price || '0') * item.quantity)}
                                                     </div>
                                                     <Button
                                                         type="button"

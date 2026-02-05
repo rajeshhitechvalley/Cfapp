@@ -8,6 +8,7 @@ import { ArrowLeft, Plus, Trash2, Save, Clock, DollarSign, Users, Minus } from '
 import AppLayout from '@/layouts/app-layout';
 import { Textarea } from '@/components/ui/textarea';
 import type { BreadcrumbItem } from '@/types';
+import { useCurrency } from '@/components/currency-switcher';
 
 interface OrderItem {
     id: number;
@@ -91,15 +92,8 @@ const route = (name: string, params?: any) => {
     return '#';
 };
 
-const formatCurrency = (amount: number | string): string => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(num);
-};
-
 const Edit: React.FC<Props> = ({ order, tables, menuItemsByCategory }) => {
+    const { formatCurrency } = useCurrency();
     const [formData, setFormData] = useState({
         table_id: order?.table_id?.toString() || '',
         status: order?.status || 'pending',
@@ -238,9 +232,9 @@ const Edit: React.FC<Props> = ({ order, tables, menuItemsByCategory }) => {
                                             <SelectTrigger className="bg-white border-2 border-gray-200 text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 rounded-xl px-4 py-3 h-12 font-medium">
                                                 <SelectValue placeholder="Select table" />
                                             </SelectTrigger>
-                                            <SelectContent>
+                                            <SelectContent className="bg-white border-gray-200">
                                                 {tables.map((table) => (
-                                                    <SelectItem key={table.id} value={table.id.toString()}>
+                                                    <SelectItem key={table.id} value={table.id.toString()} className="text-gray-900 font-medium hover:bg-gray-50">
                                                         {table.table_number} - {table.name} ({table.location})
                                                     </SelectItem>
                                                 ))}
@@ -259,12 +253,12 @@ const Edit: React.FC<Props> = ({ order, tables, menuItemsByCategory }) => {
                                             <SelectTrigger className="bg-white border-2 border-gray-200 text-gray-900 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 rounded-xl px-4 py-3 h-12 font-medium">
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="pending">Pending</SelectItem>
-                                                <SelectItem value="preparing">Preparing</SelectItem>
-                                                <SelectItem value="ready">Ready</SelectItem>
-                                                <SelectItem value="served">Served</SelectItem>
-                                                <SelectItem value="cancelled">Cancelled</SelectItem>
+                                            <SelectContent className="bg-white border-gray-200">
+                                                <SelectItem value="pending" className="text-gray-900 font-medium hover:bg-gray-50">Pending</SelectItem>
+                                                <SelectItem value="preparing" className="text-gray-900 font-medium hover:bg-gray-50">Preparing</SelectItem>
+                                                <SelectItem value="ready" className="text-gray-900 font-medium hover:bg-gray-50">Ready</SelectItem>
+                                                <SelectItem value="served" className="text-gray-900 font-medium hover:bg-gray-50">Served</SelectItem>
+                                                <SelectItem value="cancelled" className="text-gray-900 font-medium hover:bg-gray-50">Cancelled</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -280,11 +274,11 @@ const Edit: React.FC<Props> = ({ order, tables, menuItemsByCategory }) => {
                                             <SelectTrigger className="bg-white border-2 border-gray-200 text-gray-900 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 rounded-xl px-4 py-3 h-12 font-medium">
                                                 <SelectValue placeholder="Select priority" />
                                             </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="low">Low</SelectItem>
-                                                <SelectItem value="normal">Normal</SelectItem>
-                                                <SelectItem value="high">High</SelectItem>
-                                                <SelectItem value="urgent">Urgent</SelectItem>
+                                            <SelectContent className="bg-white border-gray-200 text-gray-900">
+                                                <SelectItem value="low" className="text-gray-900 font-medium hover:bg-gray-50">Low</SelectItem>
+                                                <SelectItem value="normal" className="text-gray-900 font-medium hover:bg-gray-50">Normal</SelectItem>
+                                                <SelectItem value="high" className="text-gray-900 font-medium hover:bg-gray-50">High</SelectItem>
+                                                <SelectItem value="urgent" className="text-gray-900 font-medium hover:bg-gray-50">Urgent</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -343,14 +337,14 @@ const Edit: React.FC<Props> = ({ order, tables, menuItemsByCategory }) => {
                                                         <SelectTrigger className="bg-white border-2 border-emerald-200 text-gray-900 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl px-4 py-3 h-12 font-medium">
                                                             <SelectValue placeholder="Select menu item" />
                                                         </SelectTrigger>
-                                                        <SelectContent>
+                                                        <SelectContent className="bg-white border-gray-200">
                                                             {Object.entries(menuItemsByCategory).map(([category, menuItems]) => (
                                                                 <div key={category}>
                                                                     <div className="px-4 py-3 text-sm font-bold text-gray-700 bg-emerald-100 border-b border-emerald-200">
                                                                         {category.charAt(0).toUpperCase() + category.slice(1)}
                                                                     </div>
                                                                     {menuItems.map((menuItem) => (
-                                                                        <SelectItem key={menuItem.id} value={menuItem.id.toString()}>
+                                                                        <SelectItem key={menuItem.id} value={menuItem.id.toString()} className="text-gray-900 font-medium hover:bg-gray-50">
                                                                             {menuItem.name} - {formatCurrency(menuItem.price)}
                                                                         </SelectItem>
                                                                     ))}
@@ -432,7 +426,7 @@ const Edit: React.FC<Props> = ({ order, tables, menuItemsByCategory }) => {
                         <div className="flex items-center justify-end space-x-4">
                             <Link
                                 href={route('orders.show', { id: order?.id })}
-                                className="px-2 py-2 bg-white border-2 bg-gradient-to-r from-red-600 to-red-600 border-gray-200  rounded-xl hover:bg-gray-50 transition-all duration-300 font-bold shadow-md hover:shadow-lg"
+                                className="px-4 py-2 bg-white border-2 border-gray-200 rounded-xl hover:bg-gray-50 transition-all duration-300 font-bold shadow-md hover:shadow-lg text-gray-700"
                             >
                                 Cancel
                             </Link>

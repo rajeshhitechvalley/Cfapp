@@ -97,8 +97,8 @@ const route = (name: string, params?: any) => {
 };
 
 export default function BillsShow({ bill }: Props) {
-    const { formatCurrency, getTaxLabel } = useTax();
-    const { formatCurrency: formatCurrencyWithSwitcher } = useCurrency();
+    const { getTaxLabel } = useTax();
+    const { formatCurrency } = useCurrency();
     
     const handlePaymentUpdate = (paymentMethod: string, amount: number) => {
         router.post(`/bills/${bill.id}/payment`, {
@@ -292,8 +292,8 @@ export default function BillsShow({ bill }: Props) {
                                                     </div>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="font-bold text-gray-900 text-lg">{item.quantity} × {formatCurrency(item.unit_price)}</div>
-                                                    <div className="font-bold text-xl text-emerald-600">{formatCurrency(item.total_price)}</div>
+                                                    <div className="font-bold text-gray-900 text-lg">{item.quantity} × {formatCurrency(parseFloat(item.unit_price))}</div>
+                                                    <div className="font-bold text-xl text-emerald-600">{formatCurrency(parseFloat(item.total_price))}</div>
                                                 </div>
                                             </div>
                                         ))}
@@ -317,7 +317,7 @@ export default function BillsShow({ bill }: Props) {
                                     <div className="space-y-3">
                                         <div className="flex justify-between text-white/90">
                                             <span>Subtotal:</span>
-                                            <span className="font-medium">{formatCurrency(bill.subtotal)}</span>
+                                            <span className="font-medium">{formatCurrency(parseFloat(bill.subtotal))}</span>
                                         </div>
                                         <div className="flex justify-between text-white/90">
                                             <span>{getTaxLabel()}:</span>
@@ -325,26 +325,26 @@ export default function BillsShow({ bill }: Props) {
                                         </div>
                                         <div className="flex justify-between text-white/90">
                                             <span>Service Charge:</span>
-                                            <span className="font-medium">{formatCurrency(bill.service_charge)}</span>
+                                            <span className="font-medium">{formatCurrency(parseFloat(bill.service_charge))}</span>
                                         </div>
                                         {parseFloat(bill.discount_amount) > 0 && (
                                             <div className="flex justify-between text-green-300">
                                                 <span>Discount:</span>
-                                                <span className="font-medium">-{formatCurrency(bill.discount_amount)}</span>
+                                                <span className="font-medium">-{formatCurrency(parseFloat(bill.discount_amount))}</span>
                                             </div>
                                         )}
                                         <div className="flex justify-between font-bold text-xl text-white border-t border-white/20 pt-3">
                                             <span>Total:</span>
-                                            <span>{formatCurrency(bill.total_amount)}</span>
+                                            <span>{formatCurrency(parseFloat(bill.total_amount))}</span>
                                         </div>
                                         <div className="flex justify-between text-white/90">
                                             <span>Paid Amount:</span>
-                                            <span className="font-medium">{formatCurrency(bill.paid_amount)}</span>
+                                            <span className="font-medium">{formatCurrency(parseFloat(bill.paid_amount))}</span>
                                         </div>
                                         <div className="flex justify-between font-bold text-xl text-white">
                                             <span>Remaining:</span>
                                             <span className={parseFloat(remainingAmount) > 0 ? 'text-red-300' : 'text-green-300'}>
-                                                {formatCurrency(remainingAmount)}
+                                                {formatCurrency(parseFloat(remainingAmount))}
                                             </span>
                                         </div>
                                     </div>
