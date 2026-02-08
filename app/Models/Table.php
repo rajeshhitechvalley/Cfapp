@@ -58,7 +58,7 @@ class Table extends Model
 
     public function activeOrder()
     {
-        return $this->hasOne(Order::class)->where('status', '!=', 'served');
+        return $this->hasOne(Order::class)->whereIn('status', ['pending', 'preparing', 'ready', 'served']);
     }
 
     public function isAvailable(): bool

@@ -350,6 +350,175 @@ export default function OrdersIndex({ orders, tables, filters }: Props) {
                     </CardContent>
                 </Card>
 
+                {/* Active Orders Section (Excluding Completed) */}
+                <Card className="border-0 bg-gradient-to-br from-orange-50 to-red-50 shadow-lg rounded-xl mb-8">
+                    <CardHeader className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-xl">
+                        <CardTitle className="flex items-center justify-between">
+                            <div className="flex items-center">
+                                <div className="bg-white/20 p-2 rounded-xl mr-3">
+                                    <Clock className="h-6 w-6 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold">Active Orders</h3>
+                                    <p className="text-orange-100 text-sm">Orders currently in progress (excluding completed)</p>
+                                </div>
+                            </div>
+                            <Badge className="bg-white text-orange-600 font-bold px-4 py-2 rounded-full">
+                                {localOrders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length} Active
+                            </Badge>
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                        {localOrders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').length > 0 ? (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {localOrders.filter(order => order.status !== 'completed' && order.status !== 'cancelled').map((order) => (
+                                    <div key={order.id} className="group bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div className="flex-1">
+                                                <div className="flex items-center space-x-3 mb-3">
+                                                    <div className="bg-gradient-to-br from-orange-100 to-red-100 border border-orange-300 rounded-xl px-4 py-2">
+                                                        <span className="text-xl font-bold text-orange-700">#{order.order_number}</span>
+                                                    </div>
+                                                    <Badge className={`px-3 py-1 rounded-full text-xs font-bold border-0 ${statusColors[order.status]}`}>
+                                                        {order.status.toUpperCase()}
+                                                    </Badge>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-3 mb-3">
+                                                    <div className="bg-gray-50 rounded-xl p-3">
+                                                        <div className="flex items-center space-x-2 text-gray-600 text-sm mb-1">
+                                                            <Coffee className="h-4 w-4" />
+                                                            <span>Table</span>
+                                                        </div>
+                                                        <p className="font-semibold text-gray-900">{order.table?.table_number || 'N/A'}</p>
+                                                    </div>
+                                                    <div className="bg-gray-50 rounded-xl p-3">
+                                                        <div className="flex items-center space-x-2 text-gray-600 text-sm mb-1">
+                                                            <Users className="h-4 w-4" />
+                                                            <span>Items</span>
+                                                        </div>
+                                                        <p className="font-semibold text-gray-900">{order.order_items.length}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center space-x-2">
+                                                    <Badge className={priorityColors[order.priority]}>
+                                                        {order.priority.toUpperCase()}
+                                                    </Badge>
+                                                    <span className="text-sm text-gray-500">
+                                                        {new Date(order.order_time).toLocaleTimeString()}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="text-right">
+                                                <p className="text-2xl font-bold text-green-600">
+                                                    {formatCurrency(order.total_amount)}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Order Items Preview */}
+                                        <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-4 mb-4">
+                                            <p className="text-sm font-semibold text-gray-700 mb-3">Order Items:</p>
+                                            <div className="space-y-2">
+                                                {order.order_items.slice(0, 2).map((item) => (
+                                                    <div key={item.id} className="flex justify-between items-center bg-white rounded-lg px-3 py-2 shadow-sm">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="text-sm font-medium text-gray-900">{item.menu_item?.name}</span>
+                                                            <div className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full font-semibold">
+                                                                x{item.quantity}
+                                                            </div>
+                                                        </div>
+                                                        <span className="text-sm font-bold text-gray-700">{formatCurrency(item.total_price)}</span>
+                                                    </div>
+                                                ))}
+                                                {order.order_items.length > 2 && (
+                                                    <p className="text-xs text-center text-gray-500 font-medium pt-1">
+                                                        +{order.order_items.length - 2} more items
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2">
+                                                {order.status === 'pending' && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleStatusUpdate(order.id, 'preparing')}
+                                                        disabled={updatingStatus === order.id}
+                                                        className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold"
+                                                    >
+                                                        <Clock className="h-4 w-4 mr-2" />
+                                                        Start Preparing
+                                                    </Button>
+                                                )}
+                                                {order.status === 'preparing' && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleStatusUpdate(order.id, 'ready')}
+                                                        disabled={updatingStatus === order.id}
+                                                        className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold"
+                                                    >
+                                                        <CheckCircle className="h-4 w-4 mr-2" />
+                                                        Mark Ready
+                                                    </Button>
+                                                )}
+                                                {order.status === 'ready' && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleStatusUpdate(order.id, 'served')}
+                                                        disabled={updatingStatus === order.id}
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold"
+                                                    >
+                                                        <Users className="h-4 w-4 mr-2" />
+                                                        Mark Served
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            
+                                            <div className="flex items-center space-x-2">
+                                                <Link href={route('orders.show', order.id)}>
+                                                    <Button variant="outline" size="sm" className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 transition-all duration-200">
+                                                        <Eye className="h-4 w-4 mr-2" />
+                                                        Details
+                                                    </Button>
+                                                </Link>
+                                                {!order.bill && (order.status === 'served' || order.status === 'ready') && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={() => handleGenerateBill(order.id)}
+                                                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold"
+                                                    >
+                                                        <DollarSign className="h-4 w-4 mr-2" />
+                                                        Generate Bill
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-12">
+                                <div className="bg-gray-100 w-24 h-24 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                                    <Clock className="h-12 w-12 text-gray-400" />
+                                </div>
+                                <h3 className="text-xl font-bold text-gray-700 mb-2">No Active Orders</h3>
+                                <p className="text-gray-500 text-lg mb-6">All orders have been completed or there are no orders in progress</p>
+                                <Link href={route('orders.create')}>
+                                    <Button className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold px-8 py-3">
+                                        <Plus className="h-5 w-5 mr-2" />
+                                        Create New Order
+                                    </Button>
+                                </Link>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+
                 {/* Enhanced Orders Table */}
                 <Card className="border-0 bg-gradient-to-r from-slate-50 to-blue-50 shadow-lg rounded-xl">
                     <CardHeader className="bg-gradient-to-r from-slate-600 to-blue-600 text-white rounded-t-xl">

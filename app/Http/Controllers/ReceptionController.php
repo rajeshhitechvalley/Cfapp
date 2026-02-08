@@ -70,7 +70,7 @@ class ReceptionController extends Controller
                     'name' => $table->name,
                     'capacity' => $table->capacity,
                     'status' => $table->status,
-                    'has_active_order' => $table->has_active_order,
+                    'has_active_order' => $table->activeOrder !== null,
                     'active_order' => $table->activeOrder?->order_number,
                 ];
             });
@@ -82,8 +82,8 @@ class ReceptionController extends Controller
             'preparing_orders' => Order::where('status', 'preparing')->count(),
             'ready_orders' => Order::where('status', 'ready')->count(),
             'total_tables' => Table::count(),
-            'occupied_tables' => Table::where('status', 'occupied')->count(),
-            'available_tables' => Table::where('status', 'available')->count(),
+            'occupied_tables' => Table::whereHas('activeOrder')->count(),
+            'available_tables' => Table::whereDoesntHave('activeOrder')->count(),
             'high_priority_orders' => Order::whereIn('status', ['pending', 'preparing', 'ready'])
                 ->where('priority', 'high')
                 ->count(),

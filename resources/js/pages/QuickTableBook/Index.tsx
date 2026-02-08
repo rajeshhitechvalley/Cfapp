@@ -74,6 +74,7 @@ interface Table {
     location: string | null;
     status: 'available' | 'reserved' | 'occupied' | 'maintenance';
     is_active: boolean;
+    has_active_order: boolean;
     tableType?: {
         id: number;
         name: string;
@@ -171,6 +172,7 @@ interface Order {
     subtotal: number;
     tax_amount: number;
     total_amount: number;
+    discount_amount?: number;
     order_time: string;
     orderItems?: OrderItem[];
 }
@@ -292,8 +294,8 @@ export default function QuickTableBook({ tables, menuItems, menuCombos = [], pro
     );
 
     const availableTables = tables.filter(table => table.is_active);
-    const occupiedTables = availableTables.filter(table => table.status === 'occupied');
-    const availableTablesCount = availableTables.filter(table => table.status === 'available').length;
+    const occupiedTables = availableTables.filter(table => table.status === 'occupied' || table.has_active_order);
+    const availableTablesCount = availableTables.filter(table => table.status === 'available' && !table.has_active_order).length;
 
     useEffect(() => {
         if (selectedTable) {
@@ -727,7 +729,7 @@ export default function QuickTableBook({ tables, menuItems, menuCombos = [], pro
     };
 
     const calculateOrderTotal = (order: Order) => {
-        const subtotal = order.order_items?.reduce((sum, item) => sum + item.total_price, 0) || 0;
+        const subtotal = order.orderItems?.reduce((sum: number, item: OrderItem) => sum + item.total_price, 0) || 0;
         const tax = subtotal * (taxSetting?.tax_rate || 0) / 100;
         const discount = order.discount_amount || 0;
         return subtotal + tax - discount;
@@ -934,163 +936,483 @@ export default function QuickTableBook({ tables, menuItems, menuCombos = [], pro
                     )}
 
                     {activeTab === 'tables' && (
-                        <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
-                            {availableTables.map((table) => (
-                                <Card key={table.id} className="hover:shadow-lg transition-shadow cursor-pointer">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-center justify-between">
-                                            <CardTitle className="text-lg flex items-center space-x-2">
-                                                <Coffee className="h-5 w-5" />
-                                                <span>Table {table.table_number}</span>
-                                                {table.name && <span className="text-gray-500">- {table.name}</span>}
-                                            </CardTitle>
-                                            <Badge className={getStatusColor(table.status)}>
-                                                <div className="flex items-center space-x-1">
-                                                    {getStatusIcon(table.status)}
-                                                    <span>{table.status}</span>
-                                                </div>
-                                            </Badge>
+                        <div className="space-y-6">
+                            {/* Table Stats Overview */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                                <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-emerald-600 text-sm font-medium">Available</p>
+                                            <p className="text-3xl font-bold text-emerald-700">{availableTablesCount}</p>
                                         </div>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="space-y-3">
-                                            <div className="flex items-center justify-between text-sm">
-                                                <div className="flex items-center space-x-2">
-                                                    <Users className="h-4 w-4 text-gray-500" />
-                                                    <span className="text-gray-700">
-                                                        {table.min_capacity}-{table.capacity} guests
-                                                    </span>
+                                        <div className="bg-emerald-500 bg-opacity-20 p-3 rounded-xl">
+                                            <CheckCircle className="h-8 w-8 text-emerald-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-blue-600 text-sm font-medium">Total Tables</p>
+                                            <p className="text-3xl font-bold text-blue-700">{tables.length}</p>
+                                        </div>
+                                        <div className="bg-blue-500 bg-opacity-20 p-3 rounded-xl">
+                                            <Grid className="h-8 w-8 text-blue-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-orange-600 text-sm font-medium">Occupied</p>
+                                            <p className="text-3xl font-bold text-orange-700">{occupiedTables.length}</p>
+                                        </div>
+                                        <div className="bg-orange-500 bg-opacity-20 p-3 rounded-xl">
+                                            <Users className="h-8 w-8 text-orange-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-purple-600 text-sm font-medium">Revenue</p>
+                                            <p className="text-3xl font-bold text-purple-700">Rs {tables.reduce((sum, table) => sum + calculateTableRevenue(table), 0).toFixed(0)}</p>
+                                        </div>
+                                        <div className="bg-purple-500 bg-opacity-20 p-3 rounded-xl">
+                                            <TrendingUp className="h-8 w-8 text-purple-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Tables Grid */}
+                            <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6' : 'space-y-4'}>
+                                {availableTables.map((table) => (
+                                    <Card 
+                                        key={table.id} 
+                                        className={`group relative overflow-hidden transform transition-all duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer border-0 ${
+                                            table.status === 'available' && !table.has_active_order 
+                                                ? 'bg-gradient-to-br from-emerald-50 via-white to-emerald-50 hover:from-emerald-100 hover:via-white hover:to-emerald-100' 
+                                                : table.status === 'occupied' || table.has_active_order 
+                                                ? 'bg-gradient-to-br from-red-50 via-white to-red-50 hover:from-red-100 hover:via-white hover:to-red-100' 
+                                                : 'bg-gradient-to-br from-amber-50 via-white to-amber-50 hover:from-amber-100 hover:via-white hover:to-amber-100'
+                                        }`}
+                                        onClick={() => setSelectedTable(table)}
+                                    >
+                                        {/* Decorative corner accent */}
+                                        <div className={`absolute top-0 right-0 w-20 h-20 rounded-bl-full opacity-10 ${
+                                            table.status === 'available' && !table.has_active_order 
+                                                ? 'bg-emerald-500' 
+                                                : table.status === 'occupied' || table.has_active_order 
+                                                ? 'bg-red-500' 
+                                                : 'bg-amber-500'
+                                        }`} />
+                                        
+                                        <CardHeader className="pb-4 relative">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className={`p-3 rounded-xl shadow-sm ${
+                                                        table.status === 'available' && !table.has_active_order 
+                                                            ? 'bg-emerald-500 text-white' 
+                                                            : table.status === 'occupied' || table.has_active_order 
+                                                            ? 'bg-red-500 text-white' 
+                                                            : 'bg-amber-500 text-white'
+                                                    }`}>
+                                                        <Coffee className="h-6 w-6" />
+                                                    </div>
+                                                    <div>
+                                                        <CardTitle className="text-xl font-bold text-gray-800">Table {table.table_number}</CardTitle>
+                                                        {table.name && <p className="text-sm text-gray-500 font-medium">{table.name}</p>}
+                                                    </div>
+                                                </div>
+                                                <Badge className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm border-0 ${
+                                                    table.status === 'available' && !table.has_active_order 
+                                                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' 
+                                                        : table.status === 'occupied' || table.has_active_order 
+                                                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
+                                                        : 'bg-gradient-to-r from-amber-500 to-amber-600 text-white'
+                                                }`}>
+                                                    <div className="flex items-center space-x-1">
+                                                        {getStatusIcon(table.status)}
+                                                        <span>{table.status.toUpperCase()}</span>
+                                                    </div>
+                                                </Badge>
+                                            </div>
+                                            
+                                            {table.has_active_order && (
+                                                <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 px-3 py-1.5 rounded-full text-xs font-semibold border border-orange-300">
+                                                    <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse" />
+                                                    <Users className="h-3 w-3" />
+                                                    <span>ACTIVE ORDER</span>
+                                                </div>
+                                            )}
+                                        </CardHeader>
+                                        
+                                        <CardContent className="space-y-4">
+                                            {/* Table Info */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-gray-50 rounded-xl p-3 text-center">
+                                                    <Users className="h-5 w-5 text-gray-600 mx-auto mb-1" />
+                                                    <p className="text-xs text-gray-500 font-medium">Capacity</p>
+                                                    <p className="text-sm font-bold text-gray-800">{table.min_capacity}-{table.capacity}</p>
                                                 </div>
                                                 {table.location && (
-                                                    <div className="flex items-center space-x-2">
-                                                        <MapPin className="h-4 w-4 text-gray-500" />
-                                                        <span className="text-gray-700">{table.location}</span>
+                                                    <div className="bg-gray-50 rounded-xl p-3 text-center">
+                                                        <MapPin className="h-5 w-5 text-gray-600 mx-auto mb-1" />
+                                                        <p className="text-xs text-gray-500 font-medium">Location</p>
+                                                        <p className="text-sm font-bold text-gray-800 truncate">{table.location}</p>
                                                     </div>
                                                 )}
                                             </div>
-                                            
 
-                                            <div className="flex space-x-2 pt-3">
+                                            {/* Orders Section */}
+                                            {table.orders && table.orders.length > 0 && (
+                                                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-3">
+                                                    <p className="text-xs font-semibold text-gray-600 mb-2 flex items-center">
+                                                        <Receipt className="h-3 w-3 mr-1" />
+                                                        CURRENT ORDERS ({table.orders.length})
+                                                    </p>
+                                                    <div className="space-y-1.5">
+                                                        {table.orders.slice(0, 2).map((order) => (
+                                                            <div key={order.id} className="flex justify-between items-center bg-white rounded-lg px-2 py-1.5 shadow-sm">
+                                                                <span className="text-xs font-mono font-bold text-gray-700">#{order.order_number}</span>
+                                                                <Badge className={`text-xs px-2 py-0.5 rounded-full border-0 ${getOrderStatusColor(order.status)}`}>
+                                                                    {order.status}
+                                                                </Badge>
+                                                            </div>
+                                                        ))}
+                                                        {table.orders.length > 2 && (
+                                                            <p className="text-xs text-center text-gray-500 font-medium pt-1">
+                                                                +{table.orders.length - 2} more orders
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Action Buttons */}
+                                            <div className="flex gap-2 pt-2">
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         setSelectedTable(table);
                                                         setShowBookingModal(true);
                                                     }}
+                                                    disabled={table.status !== 'available' || table.has_active_order}
+                                                    className="flex-1 bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                                                 >
                                                     <Calendar className="h-4 w-4 mr-1" />
                                                     Reserve
                                                 </Button>
-                                                {table.status === 'available' && (
+                                                {table.status === 'available' && !table.has_active_order && (
                                                     <Button
                                                         size="sm"
-                                                        onClick={() => {
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
                                                             setSelectedTable(table);
                                                             setShowMenu(true);
                                                         }}
+                                                        className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200"
                                                     >
                                                         <Plus className="h-4 w-4 mr-1" />
-                                                        Start Order
+                                                        Start
+                                                    </Button>
+                                                )}
+                                                {table.has_active_order && (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setSelectedTable(table);
+                                                        }}
+                                                        className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 border-0"
+                                                    >
+                                                        <Eye className="h-4 w-4 mr-1" />
+                                                        View
                                                     </Button>
                                                 )}
                                             </div>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            ))}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'menu' && (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <div className="lg:col-span-2">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2">
-                                                <Utensils className="h-5 w-5" />
-                                                <span>Menu Items</span>
-                                            </div>
-                                            <div className="flex items-center space-x-2">
-                                                <select
-                                                    value={selectedCategory}
-                                                    onChange={(e) => setSelectedCategory(e.target.value)}
-                                                    className="px-3 py-1 border rounded-lg"
-                                                >
-                                                    {categories.map(cat => (
-                                                        <option key={cat} value={cat}>
-                                                            {cat === 'all' ? 'All Categories' : cat}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                            {searchedMenuItems.map((item) => (
-                                                <div key={item.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div>
-                                                            <h4 className="font-semibold">{item.name}</h4>
-                                                            <p className="text-sm text-gray-600">{item.description}</p>
-                                                        </div>
-                                                        <span className="text-lg font-bold text-green-600">Rs {Number(item.price).toFixed(2)}</span>
+                        <div className="space-y-8">
+                            {/* Menu Stats Overview */}
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                <div className="bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-orange-600 text-sm font-medium">Total Items</p>
+                                            <p className="text-3xl font-bold text-orange-700">{menuItems.length}</p>
+                                        </div>
+                                        <div className="bg-orange-500 bg-opacity-20 p-3 rounded-xl">
+                                            <Utensils className="h-8 w-8 text-orange-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-purple-600 text-sm font-medium">Categories</p>
+                                            <p className="text-3xl font-bold text-purple-700">{categories.length - 1}</p>
+                                        </div>
+                                        <div className="bg-purple-500 bg-opacity-20 p-3 rounded-xl">
+                                            <Grid className="h-8 w-8 text-purple-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-green-600 text-sm font-medium">Combos</p>
+                                            <p className="text-3xl font-bold text-green-700">{menuCombos.length}</p>
+                                        </div>
+                                        <div className="bg-green-500 bg-opacity-20 p-3 rounded-xl">
+                                            <Gift className="h-8 w-8 text-green-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-2xl p-6 transform transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-red-600 text-sm font-medium">Active Deals</p>
+                                            <p className="text-3xl font-bold text-red-700">{getActivePromotions().length}</p>
+                                        </div>
+                                        <div className="bg-red-500 bg-opacity-20 p-3 rounded-xl">
+                                            <Tag className="h-8 w-8 text-red-600" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* Main Menu Items Section */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    <Card className="bg-gradient-to-br from-white via-gray-50 to-white border-0 shadow-lg">
+                                        <CardHeader className="pb-6 border-b border-gray-100">
+                                            <CardTitle className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 p-3 rounded-xl shadow-md">
+                                                        <Utensils className="h-6 w-6 text-white" />
                                                     </div>
-                                                    <div className="flex items-center space-x-2">
+                                                    <div>
+                                                        <h3 className="text-xl font-bold text-gray-900">Menu Items</h3>
+                                                        <p className="text-sm text-gray-500">Browse our delicious menu</p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center space-x-3">
+                                                    <div className="relative">
+                                                        <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                                        <select
+                                                            value={selectedCategory}
+                                                            onChange={(e) => setSelectedCategory(e.target.value)}
+                                                            className="pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all duration-200 font-medium text-sm"
+                                                        >
+                                                            {categories.map(cat => (
+                                                                <option key={cat} value={cat}>
+                                                                    {cat === 'all' ? '🍽️ All Categories' : `📂 ${cat}`}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="p-6">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {searchedMenuItems.map((item) => (
+                                                    <div key={item.id} className="group bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                                                        <div className="flex justify-between items-start mb-4">
+                                                            <div className="flex-1">
+                                                                <div className="flex items-center space-x-2 mb-2">
+                                                                    <div className="w-3 h-3 bg-gradient-to-r from-orange-400 to-orange-500 rounded-full"></div>
+                                                                    <h4 className="text-lg font-bold text-gray-900 group-hover:text-orange-600 transition-colors">
+                                                                        {item.name}
+                                                                    </h4>
+                                                                </div>
+                                                                <p className="text-gray-600 text-sm leading-relaxed mb-3">{item.description}</p>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                                                                    Rs {Number(item.price).toFixed(2)}
+                                                                </span>
+                                                                {item.is_available ? (
+                                                                    <div className="flex items-center space-x-1 text-green-600 text-sm font-medium mt-1">
+                                                                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                                        <span>Available</span>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="flex items-center space-x-1 text-red-600 text-sm font-medium mt-1">
+                                                                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                                        <span>Unavailable</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div className="flex items-center justify-between">
+                                                            <div className="flex items-center space-x-3">
+                                                                <div className="text-sm text-gray-500">
+                                                                    <span className="font-medium">Category:</span>
+                                                                    <span className="ml-1 text-orange-600 font-semibold">{item.category}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center space-x-2">
+                                                                <Button
+                                                                    size="sm"
+                                                                    onClick={() => {
+                                                                        setSelectedTable(null);
+                                                                        setShowMenu(true);
+                                                                    }}
+                                                                    disabled={!item.is_available}
+                                                                    className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold px-6 py-2.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                                >
+                                                                    <Plus className="h-4 w-4 mr-2" />
+                                                                    Add to Order
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+
+                                {/* Combos & Promotions Sidebar */}
+                                <div className="space-y-6">
+                                    {/* Combos Section */}
+                                    <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-0 shadow-lg">
+                                        <CardHeader className="pb-4">
+                                            <CardTitle className="text-xl font-bold text-green-900 flex items-center space-x-2">
+                                                <div className="bg-green-500 p-2 rounded-xl">
+                                                    <Gift className="h-5 w-5 text-white" />
+                                                </div>
+                                                <span>Combos & Deals</span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            {menuCombos.slice(0, 3).map((combo) => (
+                                                <div key={combo.id} className="group bg-gradient-to-br from-white to-green-50 border border-green-200 rounded-2xl p-5 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center space-x-2 mb-2">
+                                                                <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full"></div>
+                                                                <h4 className="text-lg font-bold text-gray-900 group-hover:text-green-600 transition-colors">
+                                                                    {combo.name}
+                                                                </h4>
+                                                            </div>
+                                                            <p className="text-gray-600 text-sm leading-relaxed">{combo.description}</p>
+                                                        </div>
+                                                        <div className="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-semibold">
+                                                            COMBO
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-between items-center">
+                                                        <div>
+                                                            <span className="text-2xl font-bold text-green-600">
+                                                                Rs {Number(combo.combo_price).toFixed(2)}
+                                                            </span>
+                                                            <div className="flex items-center space-x-1 mt-1">
+                                                                <span className="text-sm text-gray-500 line-through">Rs {Number(combo.original_price).toFixed(2)}</span>
+                                                                <span className="text-sm font-bold text-red-600">Save Rs {Number(combo.savings_amount).toFixed(2)}</span>
+                                                            </div>
+                                                        </div>
                                                         <Button
                                                             size="sm"
-                                                            onClick={() => {
-                                                                // Add to order logic
-                                                            }}
+                                                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold"
                                                         >
                                                             <Plus className="h-4 w-4" />
                                                         </Button>
                                                     </div>
                                                 </div>
                                             ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                            
+                                            
+                                            {menuCombos.length === 0 && (
+                                                <div className="text-center py-8">
+                                                    <div className="bg-gray-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                        <Gift className="h-8 w-8 text-gray-400" />
+                                                    </div>
+                                                    <p className="text-gray-500 font-medium">No combos available</p>
+                                                    <p className="text-gray-400 text-sm">Check back later for special deals</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
 
-                            <div>
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="flex items-center space-x-2">
-                                            <Gift className="h-5 w-5" />
-                                            <span>Combos & Promotions</span>
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        {menuCombos.slice(0, 3).map((combo) => (
-                                            <div key={combo.id} className="border rounded-lg p-3">
-                                                <h4 className="font-semibold">{combo.name}</h4>
-                                                <p className="text-sm text-gray-600">{combo.description}</p>
-                                                <div className="flex justify-between items-center mt-2">
-                                                    <span className="text-green-600 font-bold">Rs {Number(combo.combo_price).toFixed(2)}</span>
-                                                    <span className="text-sm text-red-500">Save Rs {Number(combo.savings_amount).toFixed(2)}</span>
+                                    {/* Promotions Section */}
+                                    <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-0 shadow-lg">
+                                        <CardHeader className="pb-4">
+                                            <CardTitle className="text-xl font-bold text-red-900 flex items-center space-x-2">
+                                                <div className="bg-red-500 p-2 rounded-xl">
+                                                    <Tag className="h-5 w-5 text-white" />
                                                 </div>
-                                            </div>
-                                        ))}
-                                        
-                                        {getActivePromotions().slice(0, 2).map((promo) => (
-                                            <div key={promo.id} className="border rounded-lg p-3 bg-yellow-50">
-                                                <h4 className="font-semibold">{promo.name}</h4>
-                                                <p className="text-sm text-gray-600">{promo.description}</p>
-                                                <div className="mt-2">
-                                                    <span className="text-sm font-bold text-green-600">
-                                                        {promo.discount_type === 'percentage' ? `${promo.discount_value}% OFF` : 
-                                                         promo.discount_type === 'fixed_amount' ? `Rs ${promo.discount_value} OFF` : 
-                                                         'Special Offer'}
-                                                    </span>
+                                                <span>Hot Promotions</span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-4">
+                                            {getActivePromotions().slice(0, 2).map((promo) => (
+                                                <div key={promo.id} className="group bg-gradient-to-br from-white to-red-50 border border-red-200 rounded-2xl p-5 hover:shadow-lg hover:scale-105 transition-all duration-300 cursor-pointer">
+                                                    <div className="flex items-start justify-between mb-3">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center space-x-2 mb-2">
+                                                                <div className="w-3 h-3 bg-gradient-to-r from-red-400 to-red-500 rounded-full animate-pulse"></div>
+                                                                <h4 className="text-lg font-bold text-gray-900 group-hover:text-red-600 transition-colors">
+                                                                    {promo.name}
+                                                                </h4>
+                                                            </div>
+                                                            <p className="text-gray-600 text-sm leading-relaxed">{promo.description}</p>
+                                                        </div>
+                                                        <div className="bg-red-100 text-red-700 text-xs px-2 py-1 rounded-full font-semibold animate-pulse">
+                                                            HOT
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex justify-between items-center">
+                                                        <div className="bg-gradient-to-r from-red-100 to-orange-100 rounded-xl px-4 py-2">
+                                                            <span className="text-lg font-bold text-red-700">
+                                                                {promo.discount_type === 'percentage' ? `${promo.discount_value}% OFF` : 
+                                                                 promo.discount_type === 'fixed_amount' ? `Rs ${promo.discount_value} OFF` : 
+                                                                 'Special Offer'}
+                                                            </span>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            className="bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold"
+                                                        >
+                                                            <Tag className="h-4 w-4 mr-1" />
+                                                            Apply
+                                                        </Button>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        ))}
-                                    </CardContent>
-                                </Card>
+                                            ))}
+                                            
+                                            {getActivePromotions().length === 0 && (
+                                                <div className="text-center py-8">
+                                                    <div className="bg-gray-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                                                        <Tag className="h-8 w-8 text-gray-400" />
+                                                    </div>
+                                                    <p className="text-gray-500 font-medium">No active promotions</p>
+                                                    <p className="text-gray-400 text-sm">Check back for special offers</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -1217,6 +1539,254 @@ export default function QuickTableBook({ tables, menuItems, menuCombos = [], pro
                         </Card>
                     )}
                 </div>
+
+                {/* Menu Modal */}
+                {showMenu && selectedTable && (
+                    <div className="fixed inset-0 bg-black bg-opacity-60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                        <div className="bg-gradient-to-br from-white via-gray-50 to-white rounded-3xl p-8 max-w-7xl w-full mx-4 shadow-2xl max-h-[90vh] overflow-hidden border border-gray-100">
+                            {/* Modal Header */}
+                            <div className="flex justify-between items-center mb-8 pb-6 border-b border-gray-100">
+                                <div className="flex items-center space-x-4">
+                                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-4 rounded-2xl shadow-lg">
+                                        <Utensils className="h-8 w-8 text-white" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                                            Start Order - Table {selectedTable.table_number}
+                                        </h2>
+                                        <p className="text-gray-600 font-medium mt-1">Select delicious items to add to the order</p>
+                                    </div>
+                                </div>
+                                <Button
+                                    onClick={() => setShowMenu(false)}
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-12 w-12 p-0 rounded-2xl hover:bg-gray-100 transition-all duration-200 border-gray-200"
+                                >
+                                    <X className="h-5 w-5" />
+                                </Button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                {/* Menu Items Section */}
+                                <div className="lg:col-span-2 space-y-6">
+                                    {/* Filters */}
+                                    <div className="flex items-center justify-between bg-gray-50 rounded-2xl p-4">
+                                        <div className="flex items-center space-x-4">
+                                            <div className="relative">
+                                                <Filter className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                                <select
+                                                    value={selectedCategory}
+                                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                                    className="pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 font-medium"
+                                                >
+                                                    {categories.map(cat => (
+                                                        <option key={cat} value={cat} className="py-2">
+                                                            {cat === 'all' ? '🍽️ All Categories' : `📂 ${cat}`}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="relative">
+                                            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                            <Input
+                                                placeholder="🔍 Search menu items..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="pl-12 pr-4 py-3 w-80 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* Menu Items Grid */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-h-96 overflow-y-auto pr-2 custom-scrollbar">
+                                        {searchedMenuItems.map((item) => (
+                                            <div key={item.id} className="group bg-gradient-to-br from-white to-gray-50 border border-gray-200 rounded-2xl p-6 hover:shadow-xl hover:scale-105 transition-all duration-300 cursor-pointer">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center space-x-2 mb-2">
+                                                            <div className="w-3 h-3 bg-gradient-to-r from-green-400 to-green-500 rounded-full"></div>
+                                                            <h4 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
+                                                                {item.name}
+                                                            </h4>
+                                                        </div>
+                                                        <p className="text-gray-600 text-sm leading-relaxed mb-3">{item.description}</p>
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                                                                Rs {Number(item.price).toFixed(2)}
+                                                            </span>
+                                                            {item.is_available ? (
+                                                                <div className="flex items-center space-x-1 text-green-600 text-sm font-medium">
+                                                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                                    <span>Available</span>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="flex items-center space-x-1 text-red-600 text-sm font-medium">
+                                                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                                                    <span>Unavailable</span>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Quantity Controls */}
+                                                <div className="space-y-4">
+                                                    <div className="flex items-center space-x-3">
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setQuantity({ ...quantity, [item.id]: Math.max(1, (quantity[item.id] || 1) - 1) })}
+                                                            className="h-10 w-10 p-0 rounded-xl hover:bg-red-50 hover:border-red-200 transition-all duration-200"
+                                                        >
+                                                            <Minus className="h-4 w-4" />
+                                                        </Button>
+                                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl px-6 py-2 min-w-[60px] text-center">
+                                                            <span className="text-xl font-bold text-blue-700">{quantity[item.id] || 1}</span>
+                                                        </div>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => setQuantity({ ...quantity, [item.id]: (quantity[item.id] || 1) + 1 })}
+                                                            className="h-10 w-10 p-0 rounded-xl hover:bg-green-50 hover:border-green-200 transition-all duration-200"
+                                                        >
+                                                            <Plus className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                    
+                                                    <Button
+                                                        size="lg"
+                                                        onClick={() => handleAddItemToTable(item)}
+                                                        disabled={loading || !item.is_available}
+                                                        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                    >
+                                                        <Plus className="h-5 w-5 mr-2" />
+                                                        Add to Order
+                                                    </Button>
+                                                    
+                                                    <Textarea
+                                                        placeholder="📝 Special instructions (optional)..."
+                                                        value={specialInstructions}
+                                                        onChange={(e) => setSpecialInstructions(e.target.value)}
+                                                        className="mt-3 bg-gray-50 border-gray-200 rounded-xl resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                                                        rows={2}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Order Summary Sidebar */}
+                                <div className="space-y-6">
+                                    <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-0 shadow-lg">
+                                        <CardHeader className="pb-4">
+                                            <CardTitle className="text-xl font-bold text-blue-900 flex items-center space-x-2">
+                                                <div className="bg-blue-500 p-2 rounded-xl">
+                                                    <ShoppingCart className="h-5 w-5 text-white" />
+                                                </div>
+                                                <span>Current Order</span>
+                                            </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-6">
+                                            {currentOrder ? (
+                                                <>
+                                                    <div className="bg-white rounded-xl p-4 border border-blue-100">
+                                                        <div className="flex items-center justify-between mb-2">
+                                                            <span className="text-sm font-medium text-gray-600">Order Number</span>
+                                                            <span className="text-lg font-bold text-blue-600">#{currentOrder.order_number}</span>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                                                        {currentOrder.orderItems?.map((item) => (
+                                                            <div key={item.id} className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                                                <div className="flex justify-between items-start">
+                                                                    <div className="flex-1">
+                                                                        <div className="flex items-center space-x-2 mb-1">
+                                                                            <span className="font-bold text-gray-900">{item.menuItem?.name}</span>
+                                                                            <div className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-semibold">
+                                                                                x{item.quantity}
+                                                                            </div>
+                                                                        </div>
+                                                                        <span className="text-sm text-gray-600">
+                                                                            Rs {Number(item.unit_price).toFixed(2)} each
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="text-right">
+                                                                        <span className="text-lg font-bold text-green-600">
+                                                                            Rs {Number(item.total_price).toFixed(2)}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="border-t border-blue-200 pt-4 space-y-3">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-gray-600 font-medium">Subtotal</span>
+                                                            <span className="text-xl font-bold text-gray-900">
+                                                                Rs {Number(currentOrder.subtotal).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-gray-600 font-medium">Tax</span>
+                                                            <span className="text-xl font-bold text-gray-900">
+                                                                Rs {Number(currentOrder.tax_amount).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                        {currentOrder.discount_amount && (
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-green-600 font-medium">Discount</span>
+                                                                <span className="text-xl font-bold text-green-600">
+                                                                    -Rs {Number(currentOrder.discount_amount).toFixed(2)}
+                                                                </span>
+                                                            </div>
+                                                        )}
+                                                        <div className="flex justify-between items-center bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-4">
+                                                            <span className="text-lg font-bold text-green-800">Total</span>
+                                                            <span className="text-2xl font-bold text-green-700">
+                                                                Rs {Number(currentOrder.total_amount).toFixed(2)}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-3">
+                                                        <Button
+                                                            onClick={handleSubmitOrder}
+                                                            disabled={loading || !currentOrder.orderItems || currentOrder.orderItems.length === 0}
+                                                            className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-lg hover:shadow-xl transform transition-all duration-200 font-semibold py-4 disabled:opacity-50 disabled:cursor-not-allowed"
+                                                        >
+                                                            <Send className="h-5 w-5 mr-2" />
+                                                            Submit Order to Kitchen
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => setShowMenu(false)}
+                                                            variant="outline"
+                                                            className="w-full bg-white border-gray-200 hover:bg-gray-50 transition-all duration-200 font-semibold py-3"
+                                                        >
+                                                            Close Menu
+                                                        </Button>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <div className="text-center py-12">
+                                                    <div className="bg-gray-100 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                                                        <ShoppingCart className="h-10 w-10 text-gray-400" />
+                                                    </div>
+                                                    <p className="text-gray-500 font-medium text-lg mb-2">No items added yet</p>
+                                                    <p className="text-gray-400 text-sm">Add items from the menu to start the order</p>
+                                                </div>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {/* Bulk Add Modal */}
                 {showBulkAddModal && (
