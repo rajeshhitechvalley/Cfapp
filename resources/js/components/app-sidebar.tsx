@@ -82,7 +82,7 @@ const mainNavItems: NavItem[] = [
         icon: Settings,
     },
     {
-        title: 'User Management',
+        title: 'Staff Management',
         href: '/users',
         icon: Users,
     },

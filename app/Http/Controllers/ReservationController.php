@@ -14,6 +14,7 @@ class ReservationController extends Controller
     public function index()
     {
         $reservations = Reservation::with(['table.tableType', 'user'])
+            ->where('user_id', auth()->id())
             ->where('reservation_date', '>=', now()->subDays(7))
             ->orderBy('reservation_date', 'desc')
             ->paginate(20);
@@ -55,7 +56,8 @@ class ReservationController extends Controller
         $endTime = $reservationDate->copy()->addMinutes((int) $validated['duration_minutes']);
 
         $conflictingReservation = Reservation::where('table_id', $table->id)
-            ->where('status', ['pending', 'confirmed'])
+            ->where('user_id', auth()->id())
+            ->whereIn('status', ['pending', 'confirmed'])
             ->where(function ($query) use ($reservationDate, $endTime) {
                 $query->whereBetween('reservation_date', [$reservationDate, $endTime])
                       ->orWhereBetween('end_time', [$reservationDate, $endTime])
@@ -74,7 +76,7 @@ class ReservationController extends Controller
             return back()->with('error', 'Party size exceeds table capacity.');
         }
 
-        $reservation = Reservation::create($validated);
+        $reservation = Reservation::create(array_merge($validated, ['user_id' => auth()->id()]));
 
         return redirect()->route('reservations.show', $reservation)
             ->with('success', 'Reservation created successfully.');
@@ -82,6 +84,11 @@ class ReservationController extends Controller
 
     public function show(Reservation $reservation)
     {
+        // Check if user owns this reservation
+        if ($reservation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $reservation->load(['table.tableType', 'user']);
 
         return Inertia::render('Reservations/Show', [
@@ -91,6 +98,11 @@ class ReservationController extends Controller
 
     public function edit(Reservation $reservation)
     {
+        // Check if user owns this reservation
+        if ($reservation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $tables = Table::with('tableType')
             ->available()
             ->orderBy('table_number')
@@ -104,6 +116,11 @@ class ReservationController extends Controller
 
     public function update(Request $request, Reservation $reservation)
     {
+        // Check if user owns this reservation
+        if ($reservation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'table_id' => 'required|exists:tables,id',
             'customer_name' => 'required|string|max:255',
@@ -124,6 +141,11 @@ class ReservationController extends Controller
 
     public function destroy(Reservation $reservation)
     {
+        // Check if user owns this reservation
+        if ($reservation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $reservation->cancel();
 
         return redirect()->route('reservations.index')
@@ -132,6 +154,11 @@ class ReservationController extends Controller
 
     public function confirm(Reservation $reservation)
     {
+        // Check if user owns this reservation
+        if ($reservation->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $reservation->confirm();
 
         return back()->with('success', 'Reservation confirmed successfully.');

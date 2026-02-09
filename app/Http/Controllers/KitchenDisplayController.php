@@ -15,6 +15,7 @@ class KitchenDisplayController extends Controller
     public function index(): Response
     {
         $orders = Order::with(['table', 'orderItems.menuItem', 'createdBy'])
+            ->where('created_by', auth()->id())
             ->whereIn('status', ['pending', 'preparing'])
             ->orderByRaw("FIELD(priority, 'high', 'normal', 'low')")
             ->orderBy('order_time', 'asc')
@@ -46,15 +47,20 @@ class KitchenDisplayController extends Controller
         // Get available kitchen staff for assignment
         $kitchenStaff = User::where('role', 'kitchen')
             ->where('is_active', true)
+            ->where(function($query) {
+                $query->where('created_by', auth()->id())
+                      ->orWhere('id', auth()->id()); // Include current user if they are kitchen staff
+            })
             ->get(['id', 'name']);
 
         // Get order statistics
         $stats = [
-            'pending_orders' => Order::where('status', 'pending')->count(),
-            'preparing_orders' => Order::where('status', 'preparing')->count(),
-            'ready_orders' => Order::where('status', 'ready')->count(),
-            'total_active_orders' => Order::whereIn('status', ['pending', 'preparing', 'ready'])->count(),
-            'high_priority_orders' => Order::whereIn('status', ['pending', 'preparing'])
+            'pending_orders' => Order::where('created_by', auth()->id())->where('status', 'pending')->count(),
+            'preparing_orders' => Order::where('created_by', auth()->id())->where('status', 'preparing')->count(),
+            'ready_orders' => Order::where('created_by', auth()->id())->where('status', 'ready')->count(),
+            'total_active_orders' => Order::where('created_by', auth()->id())->whereIn('status', ['pending', 'preparing', 'ready'])->count(),
+            'high_priority_orders' => Order::where('created_by', auth()->id())
+                ->whereIn('status', ['pending', 'preparing'])
                 ->where('priority', 'high')
                 ->count(),
         ];
@@ -68,6 +74,11 @@ class KitchenDisplayController extends Controller
 
     public function updateOrderStatus(Request $request, Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $request->validate([
             'status' => 'required|in:pending,preparing,ready,served,cancelled',
         ]);
@@ -96,6 +107,11 @@ class KitchenDisplayController extends Controller
 
     public function assignOrder(Request $request, Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $request->validate([
             'assigned_to' => 'required|exists:users,id',
         ]);
@@ -106,6 +122,14 @@ class KitchenDisplayController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Order can only be assigned to kitchen staff',
+            ], 422);
+        }
+        
+        // Check if the assigned staff belongs to current user
+        if ($assignedTo->created_by !== auth()->id() && $assignedTo->id !== auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You can only assign orders to your own staff members',
             ], 422);
         }
 
@@ -124,6 +148,11 @@ class KitchenDisplayController extends Controller
 
     public function updateItemStatus(Request $request, Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         // Debug logging
         \Log::info('updateItemStatus called', [
             'order_id' => $order->id,
@@ -160,7 +189,11 @@ class KitchenDisplayController extends Controller
     public function getNotifications(): JsonResponse
     {
         $notifications = OrderNotification::with(['order.table', 'user'])
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->forRole('kitchen')
+            ->forUser(auth()->id())
             ->unread()
             ->latest()
             ->limit(50)
@@ -195,7 +228,11 @@ class KitchenDisplayController extends Controller
 
     public function markAllNotificationsRead(): JsonResponse
     {
-        OrderNotification::forRole('kitchen')
+        OrderNotification::whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
+            ->forRole('kitchen')
+            ->forUser(auth()->id())
             ->unread()
             ->update([
                 'is_read' => true,

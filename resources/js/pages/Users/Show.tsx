@@ -132,7 +132,7 @@ export default function UsersShow({ user }: Props) {
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* User Details */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-8">
                         <Card>
                             <CardHeader>
                                 <CardTitle>User Information</CardTitle>
@@ -170,28 +170,28 @@ export default function UsersShow({ user }: Props) {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
-                                        <div className="flex items-center text-sm text-muted-foreground mb-1">
+                                        <div className="flex items-center text-sm text-gray-600 mb-1">
                                             <Mail className="h-4 w-4 mr-2" />
                                             Email Address
                                         </div>
                                         <p className="font-semibold">{user.email}</p>
                                     </div>
                                     <div>
-                                        <div className="flex items-center text-sm text-muted-foreground mb-1">
+                                        <div className="flex items-center text-sm text-gray-600 mb-1">
                                             <Phone className="h-4 w-4 mr-2" />
                                             Phone Number
                                         </div>
                                         <p className="font-semibold">{user.phone || 'Not provided'}</p>
                                     </div>
                                     <div>
-                                        <div className="flex items-center text-sm text-muted-foreground mb-1">
+                                        <div className="flex items-center text-sm text-gray-600 mb-1">
                                             <MapPin className="h-4 w-4 mr-2" />
                                             Address
                                         </div>
                                         <p className="font-semibold">{user.address || 'Not provided'}</p>
                                     </div>
                                     <div>
-                                        <div className="flex items-center text-sm text-muted-foreground mb-1">
+                                        <div className="flex items-center text-sm text-gray-600 mb-1">
                                             <Calendar className="h-4 w-4 mr-2" />
                                             Member Since
                                         </div>
@@ -201,7 +201,7 @@ export default function UsersShow({ user }: Props) {
                                     </div>
                                     {user.last_login_at && (
                                         <div>
-                                            <div className="flex items-center text-sm text-muted-foreground mb-1">
+                                            <div className="flex items-center text-sm text-gray-600 mb-1">
                                                 <Clock className="h-4 w-4 mr-2" />
                                                 Last Login
                                             </div>
@@ -214,7 +214,7 @@ export default function UsersShow({ user }: Props) {
                             </CardContent>
                         </Card>
 
-                        {/* Orders based on role */}
+                        {/* Orders Section */}
                         {(user.created_orders.length > 0 || user.assigned_orders.length > 0 || user.customer_orders.length > 0) && (
                             <Card>
                                 <CardHeader>
@@ -235,7 +235,7 @@ export default function UsersShow({ user }: Props) {
                                                                 <Link href={route('orders.show', order.id)} className="font-semibold hover:underline">
                                                                     {order.order_number}
                                                                 </Link>
-                                                                <p className="text-sm text-muted-foreground">
+                                                                <p className="text-sm text-gray-600">
                                                                     {new Date(order.order_time).toLocaleDateString()}
                                                                 </p>
                                                             </div>
@@ -262,7 +262,7 @@ export default function UsersShow({ user }: Props) {
                                                                 <Link href={route('orders.show', order.id)} className="font-semibold hover:underline">
                                                                     {order.order_number}
                                                                 </Link>
-                                                                <p className="text-sm text-muted-foreground">
+                                                                <p className="text-sm text-gray-600">
                                                                     {new Date(order.order_time).toLocaleDateString()}
                                                                 </p>
                                                             </div>
@@ -289,7 +289,7 @@ export default function UsersShow({ user }: Props) {
                                                                 <Link href={route('orders.show', order.id)} className="font-semibold hover:underline">
                                                                     {order.order_number}
                                                                 </Link>
-                                                                <p className="text-sm text-muted-foreground">
+                                                                <p className="text-sm text-gray-600">
                                                                     {new Date(order.order_time).toLocaleDateString()}
                                                                 </p>
                                                             </div>
@@ -317,26 +317,26 @@ export default function UsersShow({ user }: Props) {
                             <CardContent>
                                 <div className="space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-muted-foreground">Status</span>
+                                        <span className="text-sm text-gray-600">Status</span>
                                         <Badge className={user.is_active ? statusColors.active : statusColors.inactive}>
                                             {user.is_active ? 'Active' : 'Inactive'}
                                         </Badge>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-muted-foreground">Role</span>
+                                        <span className="text-sm text-gray-600">Role</span>
                                         <Badge className={roleColors[user.role]}>
                                             {user.role_display_name}
                                         </Badge>
                                     </div>
                                     <div className="flex justify-between items-center">
-                                        <span className="text-sm text-muted-foreground">Member Since</span>
+                                        <span className="text-sm text-gray-600">Member Since</span>
                                         <span className="font-semibold">
                                             {new Date(user.created_at).toLocaleDateString()}
                                         </span>
                                     </div>
                                     {user.last_login_at && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Last Login</span>
+                                            <span className="text-sm text-gray-600">Last Login</span>
                                             <span className="font-semibold">
                                                 {new Date(user.last_login_at).toLocaleDateString()}
                                             </span>
@@ -354,19 +354,19 @@ export default function UsersShow({ user }: Props) {
                                 <div className="space-y-4">
                                     {user.role === 'staff' && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Orders Created</span>
+                                            <span className="text-sm text-gray-600">Orders Created</span>
                                             <span className="font-semibold">{user.created_orders.length}</span>
                                         </div>
                                     )}
                                     {user.role === 'kitchen' && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Orders Assigned</span>
+                                            <span className="text-sm text-gray-600">Orders Assigned</span>
                                             <span className="font-semibold">{user.assigned_orders.length}</span>
                                         </div>
                                     )}
                                     {user.role === 'customer' && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-sm text-muted-foreground">Total Orders</span>
+                                            <span className="text-sm text-gray-600">Total Orders</span>
                                             <span className="font-semibold">{user.customer_orders.length}</span>
                                         </div>
                                     )}

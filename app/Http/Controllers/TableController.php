@@ -12,6 +12,7 @@ class TableController extends Controller
     public function index()
     {
         $tables = Table::with('tableType')
+            ->where('user_id', auth()->id())
             ->orderBy('table_number')
             ->get();
 
@@ -45,7 +46,7 @@ class TableController extends Controller
             'position' => 'nullable|array',
         ]);
 
-        Table::create($validated);
+        Table::create(array_merge($validated, ['user_id' => auth()->id()]));
 
         return redirect()->route('tables.index')
             ->with('success', 'Table created successfully.');
@@ -53,6 +54,11 @@ class TableController extends Controller
 
     public function show(Table $table)
     {
+        // Check if user owns this table
+        if ($table->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $table->load(['tableType', 'reservations' => function ($query) {
             $query->where('reservation_date', '>=', now())
                   ->orderBy('reservation_date');
@@ -65,6 +71,11 @@ class TableController extends Controller
 
     public function edit(Table $table)
     {
+        // Check if user owns this table
+        if ($table->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $tableTypes = TableType::where('is_active', true)->get();
 
         return Inertia::render('Tables/Edit', [
@@ -75,6 +86,11 @@ class TableController extends Controller
 
     public function update(Request $request, Table $table)
     {
+        // Check if user owns this table
+        if ($table->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'table_number' => 'required|string|unique:tables,table_number,' . $table->id,
             'name' => 'nullable|string|max:255',
@@ -96,6 +112,11 @@ class TableController extends Controller
 
     public function destroy(Table $table)
     {
+        // Check if user owns this table
+        if ($table->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         // Check for active reservations
         if ($table->reservations()->whereIn('status', ['pending', 'confirmed'])->exists()) {
             return back()->with('error', 'Cannot delete table with active reservations.');
@@ -120,6 +141,11 @@ class TableController extends Controller
 
     public function updateStatus(Request $request, Table $table)
     {
+        // Check if user owns this table
+        if ($table->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'status' => 'required|in:available,reserved,occupied,maintenance',
         ]);

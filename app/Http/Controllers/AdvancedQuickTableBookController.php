@@ -27,9 +27,11 @@ class AdvancedQuickTableBookController extends Controller
     {
         $tables = Table::with(['tableType', 'orders' => function($query) {
             $query->where('status', '!=', 'completed')
+                  ->where('created_by', auth()->id())
                   ->orderBy('created_at', 'desc');
         }, 'reservations' => function($query) {
             $query->where('reservation_time', '>=', now())
+                  ->where('user_id', auth()->id())
                   ->whereIn('status', ['pending', 'confirmed'])
                   ->orderBy('reservation_time');
         }])
@@ -218,6 +220,11 @@ class AdvancedQuickTableBookController extends Controller
      */
     public function applyPromotion(Request $request, Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $request->validate([
             'promotion_code' => 'required|string',
         ]);
@@ -280,6 +287,11 @@ class AdvancedQuickTableBookController extends Controller
      */
     public function splitOrderPayment(Request $request, Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $request->validate([
             'splits' => 'required|array|min:2',
             'splits.*.amount' => 'required|numeric|min:0.01',

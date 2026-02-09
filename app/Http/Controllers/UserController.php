@@ -16,7 +16,8 @@ class UserController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = User::query();
+        $query = User::where('created_by', auth()->id())
+            ->orWhere('id', auth()->id());
 
         // Filter by role if specified
         if ($request->filled('role')) {
@@ -81,6 +82,7 @@ class UserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['is_active'] = $validated['is_active'] ?? true;
+        $validated['created_by'] = auth()->id();
 
         User::create($validated);
 
@@ -93,6 +95,11 @@ class UserController extends Controller
      */
     public function show(User $user): Response
     {
+        // Check if user owns this staff member (or is viewing themselves)
+        if ($user->created_by !== auth()->id() && $user->id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $user->load(['createdOrders', 'assignedOrders', 'customerOrders']);
 
         return Inertia::render('Users/Show', [
@@ -105,6 +112,11 @@ class UserController extends Controller
      */
     public function edit(User $user): Response
     {
+        // Check if user owns this staff member (or is editing themselves)
+        if ($user->created_by !== auth()->id() && $user->id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         return Inertia::render('Users/Edit', [
             'user' => $user,
             'roles' => [
@@ -120,6 +132,11 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
+        // Check if user owns this staff member (or is updating themselves)
+        if ($user->created_by !== auth()->id() && $user->id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
@@ -153,6 +170,11 @@ class UserController extends Controller
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot delete your own account.');
         }
+        
+        // Check if user owns this staff member
+        if ($user->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
 
         $user->delete();
 
@@ -168,6 +190,11 @@ class UserController extends Controller
         // Prevent deactivating the current authenticated user
         if ($user->id === auth()->id()) {
             return back()->with('error', 'You cannot deactivate your own account.');
+        }
+        
+        // Check if user owns this staff member
+        if ($user->created_by !== auth()->id() && $user->id !== auth()->id()) {
+            abort(403, 'Unauthorized');
         }
 
         $user->update([

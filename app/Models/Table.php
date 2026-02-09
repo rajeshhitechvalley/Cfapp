@@ -12,6 +12,7 @@ class Table extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'table_number',
         'name',
         'table_type_id',
@@ -34,6 +35,11 @@ class Table extends Model
     public function tableType(): BelongsTo
     {
         return $this->belongsTo(TableType::class);
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     public function reservations(): HasMany
@@ -64,6 +70,43 @@ class Table extends Model
     public function isAvailable(): bool
     {
         return $this->status === 'available' && $this->is_active;
+    }
+
+    public function isAvailableForUser($userId = null): bool
+    {
+        $userId = $userId ?? auth()->id();
+        
+        // If table is not active, it's not available
+        if (!$this->is_active) {
+            return false;
+        }
+        
+        // Check if user has active orders on this table
+        $hasUserOrders = $this->orders()
+            ->where('created_by', $userId)
+            ->whereIn('status', ['pending', 'preparing', 'ready', 'served'])
+            ->exists();
+        
+        // If user has orders, table is available for them
+        if ($hasUserOrders) {
+            return true;
+        }
+        
+        // If no user orders, table is available only if status is available
+        return $this->status === 'available';
+    }
+
+    public function scopeAvailableForUser($query, $userId = null)
+    {
+        $userId = $userId ?? auth()->id();
+        
+        return $query->where(function($q) use ($userId) {
+            $q->where('status', 'available')
+              ->orWhereHas('orders', function($orderQuery) use ($userId) {
+                  $orderQuery->where('created_by', $userId)
+                             ->whereIn('status', ['pending', 'preparing', 'ready', 'served']);
+              });
+        })->where('is_active', true);
     }
 
     public function scopeAvailable($query)

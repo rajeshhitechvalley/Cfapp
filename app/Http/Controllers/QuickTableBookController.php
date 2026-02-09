@@ -22,13 +22,16 @@ class QuickTableBookController extends Controller
     {
         $tables = Table::with(['tableType', 'orders' => function($query) {
             $query->where('status', '!=', 'completed')
+                  ->where('created_by', auth()->id())
                   ->orderBy('created_at', 'desc');
         }])
+        ->where('user_id', auth()->id())
         ->where('is_active', true)
         ->orderBy('table_number')
         ->get();
 
-        $menuItems = MenuItem::where('is_available', true)
+        $menuItems = MenuItem::where('user_id', auth()->id())
+            ->where('is_available', true)
             ->orderBy('category')
             ->orderBy('name')
             ->get()
@@ -143,6 +146,7 @@ class QuickTableBookController extends Controller
             }
 
             $hasActiveOrders = $table->orders()
+                ->where('created_by', auth()->id())
                 ->where('status', '!=', 'completed')
                 ->exists();
 
@@ -213,6 +217,7 @@ class QuickTableBookController extends Controller
             DB::beginTransaction();
 
             $order = $table->orders()
+                ->where('created_by', auth()->id())
                 ->where(function($query) {
                     $query->where('status', 'pending')
                           ->orWhere('status', 'preparing');
@@ -307,6 +312,7 @@ class QuickTableBookController extends Controller
             }
 
             $order = $table->orders()
+                ->where('created_by', auth()->id())
                 ->where(function($query) {
                     $query->where('status', 'pending')
                           ->orWhere('status', 'preparing');
@@ -385,6 +391,12 @@ class QuickTableBookController extends Controller
             DB::beginTransaction();
 
             $order = $orderItem->order;
+            
+            // Check if user owns this order
+            if ($order->created_by !== auth()->id()) {
+                abort(403, 'Unauthorized');
+            }
+            
             $orderItem->delete();
 
             $this->updateOrderTotals($order);
@@ -394,6 +406,7 @@ class QuickTableBookController extends Controller
                 $order->delete();
                 
                 $hasOtherOrders = $table->orders()
+                    ->where('created_by', auth()->id())
                     ->where('status', '!=', 'completed')
                     ->exists();
                 
@@ -431,6 +444,13 @@ class QuickTableBookController extends Controller
         try {
             DB::beginTransaction();
 
+            $order = $orderItem->order;
+            
+            // Check if user owns this order
+            if ($order->created_by !== auth()->id()) {
+                abort(403, 'Unauthorized');
+            }
+            
             $orderItem->update([
                 'quantity' => $request->quantity,
                 'total_price' => $orderItem->unit_price * $request->quantity,
@@ -462,6 +482,11 @@ class QuickTableBookController extends Controller
      */
     public function submitOrderToKitchen(Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         try {
             $order->update([
                 'status' => 'preparing',
@@ -487,6 +512,11 @@ class QuickTableBookController extends Controller
      */
     public function completeOrder(Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         try {
             DB::beginTransaction();
 
@@ -497,6 +527,7 @@ class QuickTableBookController extends Controller
 
             $table = $order->table;
             $hasOtherOrders = $table->orders()
+                ->where('created_by', auth()->id())
                 ->where('status', '!=', 'completed')
                 ->exists();
             

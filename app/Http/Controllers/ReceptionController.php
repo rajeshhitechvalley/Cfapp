@@ -17,6 +17,7 @@ class ReceptionController extends Controller
     {
         // Get active orders with relationships
         $activeOrders = Order::with(['table', 'orderItems.menuItem', 'createdBy', 'assignedTo'])
+            ->where('created_by', auth()->id())
             ->whereIn('status', ['pending', 'preparing', 'ready'])
             ->orderByRaw("FIELD(priority, 'high', 'normal', 'low')")
             ->orderBy('order_time', 'asc')
@@ -43,6 +44,7 @@ class ReceptionController extends Controller
 
         // Get ready orders for serving
         $readyOrders = Order::with(['table', 'createdBy'])
+            ->where('created_by', auth()->id())
             ->where('status', 'ready')
             ->orderBy('ready_time', 'asc')
             ->get()
@@ -60,34 +62,53 @@ class ReceptionController extends Controller
             });
 
         // Get table status
-        $tables = Table::with(['activeOrder'])
+        $tables = Table::where('user_id', auth()->id())
+            ->with(['activeOrder' => function($query) {
+                $query->where('created_by', auth()->id());
+            }])
             ->orderBy('table_number')
             ->get()
             ->map(function ($table) {
+                // Determine actual table status based on user's orders
+                $hasUserOrder = $table->activeOrder !== null;
+                $actualStatus = $hasUserOrder ? 'occupied' : 'available';
+                
                 return [
                     'id' => $table->id,
                     'table_number' => $table->table_number,
                     'name' => $table->name,
                     'capacity' => $table->capacity,
-                    'status' => $table->status,
-                    'has_active_order' => $table->activeOrder !== null,
+                    'status' => $actualStatus, // Use user-specific status
+                    'has_active_order' => $hasUserOrder,
                     'active_order' => $table->activeOrder?->order_number,
                 ];
             });
 
         // Get statistics
         $stats = [
-            'total_active_orders' => Order::whereIn('status', ['pending', 'preparing', 'ready'])->count(),
-            'pending_orders' => Order::where('status', 'pending')->count(),
-            'preparing_orders' => Order::where('status', 'preparing')->count(),
-            'ready_orders' => Order::where('status', 'ready')->count(),
-            'total_tables' => Table::count(),
-            'occupied_tables' => Table::whereHas('activeOrder')->count(),
-            'available_tables' => Table::whereDoesntHave('activeOrder')->count(),
-            'high_priority_orders' => Order::whereIn('status', ['pending', 'preparing', 'ready'])
+            'total_active_orders' => Order::where('created_by', auth()->id())->whereIn('status', ['pending', 'preparing', 'ready'])->count(),
+            'pending_orders' => Order::where('created_by', auth()->id())->where('status', 'pending')->count(),
+            'preparing_orders' => Order::where('created_by', auth()->id())->where('status', 'preparing')->count(),
+            'ready_orders' => Order::where('created_by', auth()->id())->where('status', 'ready')->count(),
+            'total_tables' => Table::where('user_id', auth()->id())->count(),
+            'occupied_tables' => Table::where('user_id', auth()->id())
+                ->whereHas('activeOrder', function($query) {
+                    $query->where('created_by', auth()->id());
+                })
+                ->count(),
+            'available_tables' => Table::where('user_id', auth()->id())
+                ->whereDoesntHave('activeOrder', function($query) {
+                    $query->where('created_by', auth()->id());
+                })
+                ->count(),
+            'high_priority_orders' => Order::where('created_by', auth()->id())
+                ->whereIn('status', ['pending', 'preparing', 'ready'])
                 ->where('priority', 'high')
                 ->count(),
-            'daily_revenue' => number_format(Bill::whereDate('created_at', today())
+            'daily_revenue' => number_format(Bill::whereHas('order', function($query) {
+                    $query->where('created_by', auth()->id());
+                })
+                ->whereDate('created_at', today())
                 ->where('payment_status', 'paid')
                 ->sum('total_amount'), 2),
         ];
@@ -102,6 +123,11 @@ class ReceptionController extends Controller
 
     public function markOrderServed(Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         if ($order->status !== 'ready') {
             return response()->json([
                 'success' => false,
@@ -129,6 +155,11 @@ class ReceptionController extends Controller
 
     public function updateOrderPriority(Request $request, Order $order): JsonResponse
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $request->validate([
             'priority' => 'required|in:low,normal,high',
         ]);
@@ -156,7 +187,11 @@ class ReceptionController extends Controller
     public function getNotifications(): JsonResponse
     {
         $notifications = OrderNotification::with(['order.table', 'user'])
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->forRole('reception')
+            ->forUser(auth()->id())
             ->unread()
             ->latest()
             ->limit(50)

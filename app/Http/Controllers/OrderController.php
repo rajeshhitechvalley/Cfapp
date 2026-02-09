@@ -16,7 +16,8 @@ class OrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Order::with(['table', 'orderItems.menuItem', 'bill']);
+        $query = Order::with(['table', 'orderItems.menuItem', 'bill'])
+            ->where('created_by', auth()->id());
         
         // Filter by status
         if ($request->has('status') && $request->status !== 'all') {
@@ -48,16 +49,19 @@ class OrderController extends Controller
 
     public function create()
     {
-        $tables = Table::where('is_active', true)->get();
-        $menuItems = MenuItem::available()->get();
+        $tables = Table::where('user_id', auth()->id())
+            ->where('is_active', true)
+            ->get();
+        $menuItems = MenuItem::where('user_id', auth()->id())->available()->get();
         
         // Group menu items by category
         $menuItemsByCategory = $menuItems->groupBy('category');
         
         // Get table status information
         $tablesWithStatus = $tables->map(function ($table) {
-            // Check if table has active orders
+            // Check if table has active orders for current user
             $activeOrder = Order::where('table_id', $table->id)
+                ->where('created_by', auth()->id())
                 ->active()
                 ->first();
             
@@ -109,6 +113,7 @@ class OrderController extends Controller
         
         // Check if table has active orders
         $activeOrder = Order::where('table_id', $table->id)
+            ->where('created_by', auth()->id())
             ->active()
             ->first();
             
@@ -161,6 +166,11 @@ class OrderController extends Controller
 
     public function show(Order $order)
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $order->load(['table', 'orderItems.menuItem', 'bill']);
         
         return Inertia::render('Orders/Show', [
@@ -170,6 +180,11 @@ class OrderController extends Controller
 
     public function edit(Order $order)
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $order->load(['table', 'orderItems.menuItem']);
         $tables = Table::where('is_active', true)->get();
         $menuItems = MenuItem::available()->get();
@@ -184,6 +199,11 @@ class OrderController extends Controller
 
     public function update(Request $request, Order $order)
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'status' => 'required|in:pending,preparing,ready,served,completed,cancelled',
             'priority' => 'required|in:low,normal,high',
@@ -272,9 +292,18 @@ class OrderController extends Controller
         if (in_array($validated['status'], ['completed', 'cancelled']) && $order->table_id) {
             $table = Table::find($order->table_id);
             if ($table) {
-                $table->status = 'available';
-                $table->has_active_order = false;
-                $table->save();
+                // Check if user has other active orders for this table
+                $hasOtherOrders = Order::where('table_id', $table->id)
+                    ->where('created_by', auth()->id())
+                    ->where('status', '!=', 'completed')
+                    ->where('id', '!=', $order->id)
+                    ->exists();
+                
+                if (!$hasOtherOrders) {
+                    $table->status = 'available';
+                    $table->has_active_order = false;
+                    $table->save();
+                }
             }
         }
 
@@ -290,6 +319,11 @@ class OrderController extends Controller
 
     public function generateBill(Order $order)
     {
+        // Check if user owns this order
+        if ($order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         if ($order->bill) {
             return back()->with('error', 'Bill already exists for this order.');
         }

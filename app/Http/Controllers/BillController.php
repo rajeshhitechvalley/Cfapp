@@ -13,6 +13,9 @@ class BillController extends Controller
     public function index()
     {
         $bills = Bill::with(['order.table', 'order.orderItems.menuItem'])
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->orderBy('bill_time', 'desc')
             ->paginate(20);
             
@@ -23,6 +26,11 @@ class BillController extends Controller
 
     public function show(Bill $bill)
     {
+        // Check if user owns this bill's order
+        if ($bill->order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $bill->load(['order.table', 'order.orderItems.menuItem']);
         
         return Inertia::render('Bills/Show', [
@@ -32,6 +40,11 @@ class BillController extends Controller
 
     public function update(Request $request, Bill $bill)
     {
+        // Check if user owns this bill's order
+        if ($bill->order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'payment_status' => 'required|in:pending,paid,partial,refunded',
             'payment_method' => 'nullable|in:cash,card,upi,other',
@@ -55,6 +68,11 @@ class BillController extends Controller
 
     public function updatePayment(Request $request, Bill $bill)
     {
+        // Check if user owns this bill's order
+        if ($bill->order->created_by !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'payment_method' => 'required|in:cash,card,upi,other',
             'amount' => 'required|numeric|min:0|max:' . $bill->remaining_amount,
@@ -92,11 +110,19 @@ class BillController extends Controller
             $order->status = 'completed';
             $order->save();
             
-            // Free the table
+            // Free the table if user has no other active orders
             if ($order->table) {
-                $order->table->status = 'available';
-                $order->table->has_active_order = false;
-                $order->table->save();
+                $hasOtherOrders = Order::where('table_id', $order->table->id)
+                    ->where('created_by', $order->created_by)
+                    ->where('status', '!=', 'completed')
+                    ->where('id', '!=', $order->id)
+                    ->exists();
+                
+                if (!$hasOtherOrders) {
+                    $order->table->status = 'available';
+                    $order->table->has_active_order = false;
+                    $order->table->save();
+                }
             }
         }
     }

@@ -24,36 +24,53 @@ class SalesController extends Controller
         
         // Today's sales
         $todaySales = Bill::whereDate('bill_time', $today)
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->paid()
             ->sum('total_amount');
             
         // Yesterday's sales
         $yesterdaySales = Bill::whereDate('bill_time', $yesterday)
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->paid()
             ->sum('total_amount');
             
         // This month's sales
         $thisMonthSales = Bill::whereDate('bill_time', '>=', $thisMonth)
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->paid()
             ->sum('total_amount');
             
         // Last month's sales
         $lastMonthSales = Bill::whereDate('bill_time', '>=', $lastMonth)
             ->whereDate('bill_time', '<', $thisMonth)
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            })
             ->paid()
             ->sum('total_amount');
         
         // Today's orders
-        $todayOrders = Order::whereDate('order_time', $today)->count();
+        $todayOrders = Order::whereDate('order_time', $today)
+            ->where('created_by', auth()->id())
+            ->count();
         
         // Active orders
-        $activeOrders = Order::active()->count();
+        $activeOrders = Order::active()
+            ->where('created_by', auth()->id())
+            ->count();
         
         // Top selling items today
         $topItemsToday = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
             ->whereDate('orders.order_time', $today)
+            ->where('orders.created_by', auth()->id())
             ->select(
                 'menu_items.name',
                 'menu_items.category',
@@ -80,6 +97,7 @@ class SalesController extends Controller
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
             ->whereDate('orders.order_time', $today)
+            ->where('orders.created_by', auth()->id())
             ->select(
                 'menu_items.category',
                 DB::raw('SUM(order_items.total_price) as total_revenue'),
@@ -101,6 +119,7 @@ class SalesController extends Controller
         
         // Recent orders
         $recentOrders = Order::with(['table', 'orderItems.menuItem'])
+            ->where('created_by', auth()->id())
             ->orderBy('order_time', 'desc')
             ->limit(10)
             ->get();
@@ -124,7 +143,10 @@ class SalesController extends Controller
     
     public function reports(Request $request)
     {
-        $query = Bill::with(['order.table', 'order.orderItems.menuItem']);
+        $query = Bill::with(['order.table', 'order.orderItems.menuItem'])
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            });
         
         // Filter by date range
         if ($request->has('date_from')) {
@@ -175,6 +197,7 @@ class SalesController extends Controller
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
             ->whereDate('orders.order_time', '>=', $dateFrom)
             ->whereDate('orders.order_time', '<=', $dateTo)
+            ->where('orders.created_by', auth()->id())
             ->select('menu_items.name', 'menu_items.category', DB::raw('SUM(order_items.quantity) as total_quantity'), DB::raw('SUM(order_items.total_price) as total_revenue'))
             ->groupBy('menu_items.id', 'menu_items.name', 'menu_items.category')
             ->orderBy('total_revenue', 'desc')
@@ -187,6 +210,7 @@ class SalesController extends Controller
             ->join('menu_items', 'order_items.menu_item_id', '=', 'menu_items.id')
             ->whereDate('orders.order_time', '>=', $dateFrom)
             ->whereDate('orders.order_time', '<=', $dateTo)
+            ->where('orders.created_by', auth()->id())
             ->select('menu_items.category', DB::raw('SUM(order_items.quantity) as total_quantity'), DB::raw('SUM(order_items.total_price) as total_revenue'), DB::raw('COUNT(DISTINCT orders.id) as total_orders'))
             ->groupBy('menu_items.category')
             ->orderBy('total_revenue', 'desc')
@@ -194,9 +218,11 @@ class SalesController extends Controller
         
         // Hourly sales pattern
         $hourlySales = DB::table('bills')
-            ->whereDate('bill_time', '>=', $dateFrom)
-            ->whereDate('bill_time', '<=', $dateTo)
-            ->select(DB::raw('HOUR(bill_time) as hour'), DB::raw('SUM(total_amount) as total_sales'), DB::raw('COUNT(*) as total_orders'))
+            ->join('orders', 'bills.order_id', '=', 'orders.id')
+            ->whereDate('bills.bill_time', '>=', $dateFrom)
+            ->whereDate('bills.bill_time', '<=', $dateTo)
+            ->where('orders.created_by', auth()->id())
+            ->select(DB::raw('HOUR(bills.bill_time) as hour'), DB::raw('SUM(bills.total_amount) as total_sales'), DB::raw('COUNT(*) as total_orders'))
             ->groupBy('hour')
             ->orderBy('hour')
             ->get();
@@ -214,7 +240,10 @@ class SalesController extends Controller
     
     public function export(Request $request): StreamedResponse
     {
-        $query = Bill::with(['order.table', 'order.orderItems.menuItem']);
+        $query = Bill::with(['order.table', 'order.orderItems.menuItem'])
+            ->whereHas('order', function($query) {
+                $query->where('created_by', auth()->id());
+            });
         
         // Apply same filters as reports method
         if ($request->has('start_date') && $request->start_date) {

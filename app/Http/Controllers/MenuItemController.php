@@ -10,7 +10,10 @@ class MenuItemController extends Controller
 {
     public function index()
     {
-        $menuItems = MenuItem::orderBy('category')->orderBy('name')->get();
+        $menuItems = MenuItem::where('user_id', auth()->id())
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
         
         return Inertia::render('MenuItems/Index', [
             'menuItems' => $menuItems->map(function ($item) {
@@ -46,7 +49,7 @@ class MenuItemController extends Controller
             'preparation_time' => 'required|integer|min:0|max:120',
         ]);
 
-        MenuItem::create($validated);
+        MenuItem::create(array_merge($validated, ['user_id' => auth()->id()]));
 
         return redirect()->route('menu-items.index')
             ->with('success', 'Menu item created successfully!');
@@ -54,6 +57,11 @@ class MenuItemController extends Controller
 
     public function edit(MenuItem $menuItem)
     {
+        // Check if user owns this menu item
+        if ($menuItem->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         return Inertia::render('MenuItems/Edit', [
             'menuItem' => [
                 'id' => $menuItem->id,
@@ -70,6 +78,11 @@ class MenuItemController extends Controller
 
     public function update(Request $request, MenuItem $menuItem)
     {
+        // Check if user owns this menu item
+        if ($menuItem->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'category' => 'required|in:tea,snack,cake,pizza',
@@ -88,6 +101,11 @@ class MenuItemController extends Controller
 
     public function destroy(MenuItem $menuItem)
     {
+        // Check if user owns this menu item
+        if ($menuItem->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $menuItem->delete();
 
         return redirect()->route('menu-items.index')
@@ -96,6 +114,11 @@ class MenuItemController extends Controller
 
     public function toggleAvailability(MenuItem $menuItem)
     {
+        // Check if user owns this menu item
+        if ($menuItem->user_id !== auth()->id()) {
+            abort(403, 'Unauthorized');
+        }
+        
         $menuItem->update([
             'is_available' => !$menuItem->is_available
         ]);
