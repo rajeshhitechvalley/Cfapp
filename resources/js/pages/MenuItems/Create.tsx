@@ -6,14 +6,28 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
-import { ArrowLeft, Save, Plus, Utensils, Coffee, Cake, Pizza, Clock, DollarSign, Image, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Utensils, Clock, DollarSign, Image, CheckCircle } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
+import { getCategoryIcon } from '@/utils/categoryIcons';
 
-export default function MenuItemsCreate() {
+interface MenuCategory {
+    id: number;
+    name: string;
+    description: string | null;
+    is_active: boolean;
+    icon?: string | null;
+}
+
+interface Props {
+    categories: MenuCategory[];
+}
+
+export default function MenuItemsCreate({ categories }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: '',
-        category: '',
+        menu_category_id: categories.length > 0 ? categories[0].id.toString() : '',
+        category: categories.length > 0 ? categories[0].name : '',
         description: '',
         price: '',
         image_url: '',
@@ -21,9 +35,25 @@ export default function MenuItemsCreate() {
         preparation_time: '10',
     });
 
+    
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        // Set category name based on selected category ID
+        const selectedCategory = categories.find(cat => cat.id.toString() === data.menu_category_id);
+        if (selectedCategory) {
+            setData('category', selectedCategory.name);
+        }
+        
         post('/menu-items');
+    };
+
+    const handleCategoryChange = (value: string) => {
+        setData('menu_category_id', value);
+        const selectedCategory = categories.find(cat => cat.id.toString() === value);
+        if (selectedCategory) {
+            setData('category', selectedCategory.name);
+        }
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -36,7 +66,7 @@ export default function MenuItemsCreate() {
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Create Menu Item" />
 
-            <div className="space-y-8">
+            <div className="space-y-8 p-8">
                 {/* Enhanced Header */}
                 <div className="bg-gradient-to-r from-green-600 via-emerald-600 to-teal-600 rounded-3xl p-8 text-white shadow-2xl">
                     <div className="flex items-center justify-between">
@@ -97,26 +127,25 @@ export default function MenuItemsCreate() {
 
                                 <div className="space-y-3">
                                     <Label htmlFor="category" className="text-sm font-bold text-gray-700 flex items-center">
-                                        <Coffee className="h-4 w-4 mr-1 text-green-600" />
+                                        <Utensils className="h-4 w-4 mr-1 text-green-600" />
                                         Category *
                                     </Label>
-                                    <Select value={data.category} onValueChange={(value) => setData('category', value)}>
+                                    <Select value={data.menu_category_id} onValueChange={handleCategoryChange}>
                                         <SelectTrigger className="border-2 border-gray-300 focus:border-green-500 focus:ring-green-200 h-12 text-gray-900 font-medium">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent className="text-gray-700 bg-white border-2 border-gray-200 shadow-lg">
-                                            <SelectItem value="tea" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
-                                                🍵 Tea
-                                            </SelectItem>
-                                            <SelectItem value="snack" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
-                                                🍟 Snack
-                                            </SelectItem>
-                                            <SelectItem value="cake" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
-                                                🍰 Cake
-                                            </SelectItem>
-                                            <SelectItem value="pizza" className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
-                                                🍕 Pizza
-                                            </SelectItem>
+                                            {categories.map((category) => {
+                                                const Icon = getCategoryIcon(category.icon);
+                                                return (
+                                                    <SelectItem key={category.id} value={category.id.toString()} className="text-gray-900 font-semibold hover:bg-green-50 cursor-pointer">
+                                                        <div className="flex items-center">
+                                                            <Icon className="h-4 w-4 mr-2" />
+                                                            {category.name}
+                                                        </div>
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                     {errors.category && (

@@ -8,6 +8,7 @@ use App\Http\Controllers\ReservationController;
 use App\Http\Controllers\CafeDashboardController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\SalesController;
+use App\Http\Controllers\MenuCategoryController;
 use App\Http\Controllers\MenuItemController;
 use App\Http\Controllers\BillController;
 use App\Http\Controllers\UserController;
@@ -85,6 +86,9 @@ Route::middleware('web')->group(function () {
     // Menu management routes
     Route::resource('menu-items', MenuItemController::class);
     Route::post('menu-items/{menuItem}/toggle-availability', [MenuItemController::class, 'toggleAvailability'])->name('menu-items.toggle-availability');
+    
+    // Menu category management routes
+    Route::resource('menu-categories', MenuCategoryController::class);
     
     // Tax settings routes
     Route::resource('tax-settings', TaxSettingController::class);

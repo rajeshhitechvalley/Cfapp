@@ -13,6 +13,7 @@ import type { BreadcrumbItem } from '@/types';
 interface MenuItem {
     id: number;
     name: string;
+    menu_category_id: number | null;
     category: string;
     description: string | null;
     price: string;
@@ -21,13 +22,22 @@ interface MenuItem {
     preparation_time: number;
 }
 
-interface Props {
-    menuItem: MenuItem;
+interface MenuCategory {
+    id: number;
+    name: string;
+    description: string | null;
+    is_active: boolean;
 }
 
-export default function MenuItemsEdit({ menuItem }: Props) {
+interface Props {
+    menuItem: MenuItem;
+    categories: MenuCategory[];
+}
+
+export default function MenuItemsEdit({ menuItem, categories }: Props) {
     const { data, setData, post, processing, errors } = useForm({
         name: menuItem.name,
+        menu_category_id: menuItem.menu_category_id?.toString() || (categories.length > 0 ? categories[0].id.toString() : ''),
         category: menuItem.category,
         description: menuItem.description || '',
         price: menuItem.price,
@@ -36,13 +46,39 @@ export default function MenuItemsEdit({ menuItem }: Props) {
         preparation_time: menuItem.preparation_time.toString(),
     });
 
+    // Category icon mapping
+    const getCategoryIcon = (categoryName: string) => {
+        const iconMap: { [key: string]: React.ComponentType<any> } = {
+            'Tea': Coffee,
+            'Snack': Utensils,
+            'Cake': Cake,
+            'Pizza': Pizza,
+        };
+        return iconMap[categoryName] || Utensils;
+    };
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        
+        // Set category name based on selected category ID
+        const selectedCategory = categories.find(cat => cat.id.toString() === data.menu_category_id);
+        if (selectedCategory) {
+            setData('category', selectedCategory.name);
+        }
+        
         router.put(`/menu-items/${menuItem.id}`, data, {
             onSuccess: () => {
-                // Success handling
+                // Success message will be shown via flash session
             },
         });
+    };
+
+    const handleCategoryChange = (value: string) => {
+        setData('menu_category_id', value);
+        const selectedCategory = categories.find(cat => cat.id.toString() === value);
+        if (selectedCategory) {
+            setData('category', selectedCategory.name);
+        }
     };
 
     const breadcrumbs: BreadcrumbItem[] = [
@@ -119,23 +155,22 @@ export default function MenuItemsEdit({ menuItem }: Props) {
                                         <Coffee className="h-4 w-4 mr-1 text-blue-600" />
                                         Category *
                                     </Label>
-                                    <Select value={data.category} onValueChange={(value) => setData('category', value)}>
+                                    <Select value={data.menu_category_id} onValueChange={handleCategoryChange}>
                                         <SelectTrigger className="border-2 border-gray-300 focus:border-blue-500 focus:ring-blue-200 h-10 text-gray-900 font-medium">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
                                         <SelectContent className="text-gray-700 bg-white border-2 border-gray-200 shadow-lg">
-                                            <SelectItem value="tea" className="text-gray-900 font-semibold hover:bg-blue-50 cursor-pointer">
-                                                🍵 Tea
-                                            </SelectItem>
-                                            <SelectItem value="snack" className="text-gray-900 font-semibold hover:bg-blue-50 cursor-pointer">
-                                                🍟 Snack
-                                            </SelectItem>
-                                            <SelectItem value="cake" className="text-gray-900 font-semibold hover:bg-blue-50 cursor-pointer">
-                                                🍰 Cake
-                                            </SelectItem>
-                                            <SelectItem value="pizza" className="text-gray-900 font-semibold hover:bg-blue-50 cursor-pointer">
-                                                🍕 Pizza
-                                            </SelectItem>
+                                            {categories.map((category) => {
+                                                const Icon = getCategoryIcon(category.name);
+                                                return (
+                                                    <SelectItem key={category.id} value={category.id.toString()} className="text-gray-900 font-semibold hover:bg-blue-50 cursor-pointer">
+                                                        <div className="flex items-center">
+                                                            <Icon className="h-4 w-4 mr-2" />
+                                                            {category.name}
+                                                        </div>
+                                                    </SelectItem>
+                                                );
+                                            })}
                                         </SelectContent>
                                     </Select>
                                     {errors.category && (

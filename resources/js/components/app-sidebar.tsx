@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Calendar, Table2, ShoppingCart, TrendingUp, Utensils, Settings, Users, ChefHat, Phone, Zap } from 'lucide-react';
+import { BookOpen, Folder, LayoutGrid, Calendar, Table2, ShoppingCart, TrendingUp, Utensils, Settings, Users, ChefHat, Phone, Zap, List } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -30,6 +30,11 @@ const mainNavItems: NavItem[] = [
         title: 'Menu Items',
         href: '/menu-items',
         icon: Utensils,
+    },
+    {
+        title: 'Menu Categories',
+        href: '/menu-categories',
+        icon: List,
     },
     {
         title: 'Sales',

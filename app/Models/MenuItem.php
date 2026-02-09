@@ -11,6 +11,7 @@ class MenuItem extends Model
 
     protected $fillable = [
         'user_id',
+        'menu_category_id',
         'name',
         'category',
         'description',
@@ -29,6 +30,11 @@ class MenuItem extends Model
     public function orderItems()
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function menuCategory()
+    {
+        return $this->belongsTo(MenuCategory::class);
     }
 
     public function user()

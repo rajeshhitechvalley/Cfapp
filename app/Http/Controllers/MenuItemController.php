@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\MenuItem;
+use App\Models\MenuCategory;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -11,6 +12,7 @@ class MenuItemController extends Controller
     public function index()
     {
         $menuItems = MenuItem::where('user_id', auth()->id())
+            ->with('menuCategory')
             ->orderBy('category')
             ->orderBy('name')
             ->get();
@@ -21,6 +23,11 @@ class MenuItemController extends Controller
                     'id' => $item->id,
                     'name' => $item->name,
                     'category' => $item->category,
+                    'menu_category' => $item->menuCategory ? [
+                        'id' => $item->menuCategory->id,
+                        'name' => $item->menuCategory->name,
+                        'image_url' => $item->menuCategory->image_url,
+                    ] : null,
                     'description' => $item->description,
                     'price' => (string) $item->price,
                     'image_url' => $item->image_url,
@@ -34,14 +41,19 @@ class MenuItemController extends Controller
 
     public function create()
     {
-        return Inertia::render('MenuItems/Create');
+        $categories = MenuCategory::active()->ordered()->get();
+        
+        return Inertia::render('MenuItems/Create', [
+            'categories' => $categories,
+        ]);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => 'required|in:tea,snack,cake,pizza',
+            'menu_category_id' => 'required|exists:menu_categories,id',
+            'category' => 'required|string|max:255', // Keep for backward compatibility
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0|max:999999.99',
             'image_url' => 'nullable|url',
@@ -62,10 +74,13 @@ class MenuItemController extends Controller
             abort(403, 'Unauthorized');
         }
         
+        $categories = MenuCategory::active()->ordered()->get();
+        
         return Inertia::render('MenuItems/Edit', [
             'menuItem' => [
                 'id' => $menuItem->id,
                 'name' => $menuItem->name,
+                'menu_category_id' => $menuItem->menu_category_id,
                 'category' => $menuItem->category,
                 'description' => $menuItem->description,
                 'price' => (string) $menuItem->price,
@@ -73,6 +88,7 @@ class MenuItemController extends Controller
                 'is_available' => $menuItem->is_available,
                 'preparation_time' => $menuItem->preparation_time,
             ],
+            'categories' => $categories,
         ]);
     }
 
@@ -85,7 +101,8 @@ class MenuItemController extends Controller
         
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'category' => 'required|in:tea,snack,cake,pizza',
+            'menu_category_id' => 'required|exists:menu_categories,id',
+            'category' => 'required|string|max:255', // Keep for backward compatibility
             'description' => 'nullable|string',
             'price' => 'required|numeric|min:0|max:999999.99',
             'image_url' => 'nullable|url',

@@ -637,7 +637,7 @@ export default function KitchenIndex({
                                                         {staff.name}
                                                     </SelectItem>
                                                 )) : (
-                                                    <SelectItem value="" disabled className="text-gray-500 font-semibold">
+                                                    <SelectItem value="no-staff" disabled className="text-gray-500 font-semibold">
                                                         No staff available
                                                     </SelectItem>
                                                 )}

@@ -1,16 +1,26 @@
+import React from 'react';
 import { Head, Link, router } from '@inertiajs/react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Edit, Trash2, ToggleLeft, ToggleRight, Clock, Coffee, Utensils, Star, Zap, Award, ChefHat } from 'lucide-react';
+import { Plus, Edit, Trash2, ToggleLeft, ToggleRight, Clock, Star, Zap, Award, ChefHat } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
 import { useCurrency } from '@/components/currency-switcher';
 import type { BreadcrumbItem } from '@/types';
+import { getCategoryIcon, getCategoryColor, getCardBackground } from '@/utils/categoryIcons';
+
+interface MenuCategory {
+    id: number;
+    name: string;
+    image_url: string | null;
+    icon?: string | null;
+}
 
 interface MenuItem {
     id: number;
     name: string;
     category: string;
+    menu_category: MenuCategory | null;
     description: string | null;
     price: string;
     image_url: string | null;
@@ -23,19 +33,6 @@ interface Props {
     menuItems: MenuItem[];
 }
 
-const categoryIcons = {
-    tea: '🍵',
-    snack: '🍟',
-    cake: '🍰',
-    pizza: '🍕',
-};
-
-const categoryColors = {
-    tea: 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-300',
-    snack: 'bg-gradient-to-r from-yellow-100 to-orange-100 text-yellow-800 border-yellow-300',
-    cake: 'bg-gradient-to-r from-pink-100 to-rose-100 text-pink-800 border-pink-300',
-    pizza: 'bg-gradient-to-r from-red-100 to-orange-100 text-red-800 border-red-300',
-};
 
 export default function MenuItemsIndex({ menuItems }: Props) {
     const { formatCurrency } = useCurrency();
@@ -84,23 +81,38 @@ export default function MenuItemsIndex({ menuItems }: Props) {
                 {/* Enhanced Menu Items Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {menuItems.map((item) => (
-                        <Card key={item.id} className={`group transition-all duration-300 transform hover:scale-105 hover:shadow-2xl border-0 rounded-2xl ${
-                            !item.is_available ? 'opacity-75' : ''
-                        } ${
-                            item.category === 'tea' ? 'bg-gradient-to-br from-green-50 to-emerald-50' :
-                            item.category === 'snack' ? 'bg-gradient-to-br from-yellow-50 to-orange-50' :
-                            item.category === 'cake' ? 'bg-gradient-to-br from-pink-50 to-rose-50' :
-                            'bg-gradient-to-br from-red-50 to-orange-50'
-                        }`}>
+                        <Card key={item.id} className={`group hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.02] rounded-xl border-2 border-transparent hover:border-blue-200 overflow-hidden ${getCardBackground(item.category)}`}>
                             <CardHeader className="pb-4">
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center space-x-3">
                                         <div className="text-3xl group-hover:scale-110 transition-transform duration-300">
-                                            {categoryIcons[item.category as keyof typeof categoryIcons]}
+                                            {item.menu_category?.image_url ? (
+                                                <img 
+                                                    src={item.menu_category.image_url} 
+                                                    alt={item.category}
+                                                    className="h-8 w-8 rounded-full object-cover border-2 border-white shadow-md"
+                                                />
+                                            ) : (
+                                                (() => {
+                                                    // Debug: Log the actual data structure
+                                                    console.log('Menu Item Debug:', {
+                                                        itemName: item.name,
+                                                        category: item.category,
+                                                        menuCategory: item.menu_category,
+                                                        iconFromDb: item.menu_category?.icon,
+                                                        finalIconParam: item.menu_category?.icon || item.category
+                                                    });
+                                                    
+                                                    // Get icon from database if available, otherwise use category name
+                                                    const IconComponent = getCategoryIcon(item.menu_category?.icon || item.category);
+                                                    console.log('Icon Component:', IconComponent);
+                                                    return React.createElement(IconComponent, { className: "h-8 w-8" });
+                                                })()
+                                            )}
                                         </div>
                                         <div>
                                             <CardTitle className="text-xl font-bold text-gray-900">{item.name}</CardTitle>
-                                            <Badge className={`${categoryColors[item.category as keyof typeof categoryColors]} font-semibold px-3 py-1 rounded-full border`}>
+                                            <Badge className={`${getCategoryColor(item.category)} font-semibold px-3 py-1 rounded-full border`}>
                                                 {item.category}
                                             </Badge>
                                         </div>
